@@ -35,6 +35,13 @@ class LdapUser {
 		$this->idAttribute = $idAttribute;
 		$this->attributeMap = $attributeMap;
 		$this->entryArray = $entryArray;
+		
+		// Do not allow a user to be created without a valid id.
+		try {
+			$this->getId();
+		} catch (Exception $e) {
+			throw new OperationFailedException("Cannot create a user without an Id. DN: ".$this->entryArray['dn']);
+		}
 	}
 	
 	/**

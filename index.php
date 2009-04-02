@@ -44,7 +44,7 @@ require_once(dirname(__FILE__).'/config.inc.php');
 require_once(dirname(__FILE__).'/lib/HarmoniException.class.php');
 require_once(dirname(__FILE__).'/lib/ErrorPrinter.class.php');
 require_once(dirname(__FILE__).'/lib/LdapConnector.class.php');
-require_once(dirname(__FILE__).'/lib/XmlPrinter.class.php');
+require_once(dirname(__FILE__).'/lib/DomXmlPrinter.class.php');
 
 
 try {	 
@@ -95,7 +95,7 @@ try {
 		default:
 			throw new UnknownActionException('action, \''.$_GET['action'].'\' is not one of [search_users, search_groups, get_user, get_group].');
 	}
-	
+	$start = microtime();
 	
 	$results = array();
 	foreach ($ldapConfig as $connectorConfig) {
@@ -115,19 +115,32 @@ try {
 				$results = array_merge($results, array($connector->getUser($_GET['id'])));
 				break;
 			case 'get_group_members':
-				$results = array_merge($results, array($connector->getGroupMembers($_GET['id'])));
+				$results = array_merge($results, $connector->getGroupMembers($_GET['id']));
 				break;
 			default:
 				throw new UnknownActionException('action, \''.$_GET['action'].'\' is not one of [search_users, search_groups, get_user, get_group].');
 		}
 		$connector->disconnect();
 	}
-	
+	$end = microtime();
 	@header('Content-Type: text/plain');
-	
-	$printer = new XmlPrinter;
+		
+	$printer = new DomXmlPrinter;
 	$printer->output($results);
-
+	
+	$end2 = microtime();
+	list($sm, $ss) = explode(" ", $start);
+	list($em, $es) = explode(" ", $end);
+	$s = $ss + $sm;
+	$e = $es + $em;
+	print "\n<time>".($e-$s)."</time>";
+	list($sm, $ss) = explode(" ", $end);
+	list($em, $es) = explode(" ", $end2);
+	$s = $ss + $sm;
+	$e = $es + $em;
+	print "\n<output_time>".($e-$s)."</output_time>";
+	print "\n<number>".(count($results))."</number>";
+	
 // Handle certain types of uncaught exceptions specially. In particular,
 // Send back HTTP Headers indicating that an error has ocurred to help prevent
 // crawlers from continuing to pound invalid urls.

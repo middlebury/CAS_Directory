@@ -7,7 +7,6 @@
  * @license http://www.gnu.org/copyleft/gpl.html GNU General Public License (GPL)
  */ 
 
-
 /**
  * A printer for generating the appropriate XML output.
  * 
@@ -17,7 +16,7 @@
  * @copyright Copyright &copy; 2009, Middlebury College
  * @license http://www.gnu.org/copyleft/gpl.html GNU General Public License (GPL)
  */
-class XmlPrinter {
+class DomXmlPrinter {
 	
 	/**
 	 * Constructor
@@ -27,7 +26,10 @@ class XmlPrinter {
 	 * @since 3/30/09
 	 */
 	public function __construct () {
+		$this->doc = new DOMDocument ('1.0', 'utf-8');
+		$this->doc->formatOutput = true;
 		
+		$this->doc->appendChild($this->doc->createElementNS('http://www.yale.edu/tp/cas', 'cas:results'));
 	}
 	
 	/**
@@ -39,13 +41,10 @@ class XmlPrinter {
 	 * @since 3/30/09
 	 */
 	public function output (array $entries) {
-		print '<'.'?xml version="1.0" encoding="utf-8"?'.'>
-<cas:results xmlns:cas="http://www.yale.edu/tp/cas">';
-
 		foreach ($entries as $userOrGroup) {
 			$this->addEntry($userOrGroup);
 		}
-		print "\n</cas:results>";
+		print $this->doc->saveXML();
 	}
 	
 	/**
@@ -58,19 +57,20 @@ class XmlPrinter {
 	 */
 	protected function addEntry (LdapUser $userOrGroup) {
 		try {
-			print "\n\t<cas:entry>";
+			$elem = $this->doc->documentElement->appendChild($this->doc->createElementNS('http://www.yale.edu/tp/cas', 'cas:entry'));
 			
 			if ($userOrGroup->isGroup())
-				print "\n\t\t<cas:group>".htmlentities($userOrGroup->getId())."</cas:group>";
+				$elem->appendChild($this->doc->createElementNS('http://www.yale.edu/tp/cas', 'cas:group', $userOrGroup->getId()));
 			else
-				print "\n\t\t<cas:user>".htmlentities($userOrGroup->getId())."</cas:user>";
+				$elem->appendChild($this->doc->createElementNS('http://www.yale.edu/tp/cas', 'cas:user', $userOrGroup->getId()));
 			
 			foreach ($userOrGroup->getAttributeKeys() as $attribute) {
 				foreach ($userOrGroup->getAttributeValues($attribute) as $value) {
-					print "\n\t\t<cas:attribute name=\"".$attribute."\" value=\"".htmlentities($value)."\"/>";
+					$attraElem = $elem->appendChild($this->doc->createElementNS('http://www.yale.edu/tp/cas', 'cas:attribute'));
+					$attraElem->setAttribute('name', $attribute);
+					$attraElem->setAttribute('value', $value);
 				}
 			}
-			print "\n\t</cas:entry>";
 		} catch (OperationFailedException $e) {
 			print_r($userOrGroup);
 			throw $e;
