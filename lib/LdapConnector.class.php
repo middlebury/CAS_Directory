@@ -7,6 +7,9 @@
  * @license http://www.gnu.org/copyleft/gpl.html GNU General Public License (GPL)
  */ 
 
+require_once(dirname(__FILE__).'/LdapUser.class.php');
+require_once(dirname(__FILE__).'/LdapGroup.class.php');
+
 /**
  * An LDAP connector
  * 
@@ -125,7 +128,7 @@ class LdapConnector {
 		
 		$result = ldap_search($this->_connection, $this->_config['UserBaseDN'], 
 						"(".$this->_config['UserIdAttribute']."=".$id.")", 
-						array_keys($this->_config['UserAttributes']));
+						array_merge(array($this->_config['UserIdAttribute']), array_keys($this->_config['UserAttributes'])));
 						
 		if (ldap_errno($this->_connection))
 			throw new LDAPException("Read failed for ".$this->_config['UserIdAttribute']." '$id' with message: ".ldap_error($this->_connection));
@@ -133,26 +136,126 @@ class LdapConnector {
 		$entries = ldap_get_entries($this->_connection, $result);
 		ldap_free_result($result);
 		
-		if (!$entries['count'])
+		if (!intval($entries['count']))
 			throw new UnknownIdException("Could not find a user matching '$id'.");
 		
-		return $entries;
-		// Rebuild the array
-		$entry = $entries[0];
-		$numValues = $entry['count'];
+		if (intval($entries['count']) > 1)
+			throw new OperationFailedException("Found more than one user matching '$id'.");
 		
-		$values = array();
-		for ($i=0; $i<$numValues; $i++) {
-			$key = $entry[$i];
-			$value = $entry[$entry[$i]];
-			
-			$values[$key] = array();
-			
-			for ($j = 0; $j < $value['count']; $j++)
-					$values[$key][] = $value[$j];
-		}
+		return new LdapUser($this->_config['UserIdAttribute'], $this->_config['UserAttributes'], $entries[0]);
+	}
+	
+	/**
+	 * Answer a single user by DN
+	 * 
+	 * @param string $id	A numeric string or integer
+	 * @return object LdapPerson
+	 * @access protected
+	 * @since 3/25/09
+	 */
+	protected function getUserByDn ($dn) {
+		$dn = strval($dn);
+		// Match a LDAP DN
+		if (!preg_match('/^[a-z0-9_=,.\'&\s-]+$/i', $dn))
+			throw new InvalidArgumentException("dn '".$dn."' is not valid format.");
 		
-		return $values;
+		$result = ldap_search($this->_connection, $this->_config['UserBaseDN'], 
+						"(distinguishedName=".$dn.")", 
+						array_merge(array($this->_config['UserIdAttribute']), array_keys($this->_config['UserAttributes'])));
+						
+		if (ldap_errno($this->_connection))
+			throw new LDAPException("Read failed for distinguishedName '$dn' with message: ".ldap_error($this->_connection));
+		
+		$entries = ldap_get_entries($this->_connection, $result);
+		ldap_free_result($result);
+		
+		if (!intval($entries['count']))
+			throw new UnknownIdException("Could not find a user matching '$dn'.");
+		
+		if (intval($entries['count']) > 1)
+			throw new OperationFailedException("Found more than one user matching '$dn'.");
+		
+		return new LdapUser($this->_config['UserIdAttribute'], $this->_config['UserAttributes'], $entries[0]);
+	}
+	
+	/**
+	 * Answer a single user by Id
+	 * 
+	 * @param string $id	A numeric string or integer
+	 * @return object LdapPerson
+	 * @access public
+	 * @since 3/25/09
+	 */
+	public function getGroup ($id) {
+		$id = strval($id);
+		// Match a LDAP DN
+		if (!preg_match('/^[a-z0-9_=,.\'&\s-]+$/i', $id))
+			throw new InvalidArgumentException("id '".$id."' is not valid format.");
+		
+		$result = ldap_search($this->_connection, $this->_config['GroupBaseDN'], 
+						"(".$this->_config['GroupIdAttribute']."=".$id.")", 
+						array_merge(array($this->_config['GroupIdAttribute']), array_keys($this->_config['GroupAttributes'])));
+						
+		if (ldap_errno($this->_connection))
+			throw new LDAPException("Read failed for ".$this->_config['GroupIdAttribute']." '$id' with message: ".ldap_error($this->_connection));
+		
+		$entries = ldap_get_entries($this->_connection, $result);
+		ldap_free_result($result);
+		
+		if (!intval($entries['count']))
+			throw new UnknownIdException("Could not find a group matching '$id'.");
+		
+		if (intval($entries['count']) > 1)
+			throw new OperationFailedException("Found more than one group matching '$id'.");
+		
+		return new LdapGroup($this->_config['GroupIdAttribute'], $this->_config['GroupAttributes'], $entries[0]);
+	}
+	
+	/**
+	 * Answer an array of group members
+	 * 
+	 * @param string $id	A numeric string or integer
+	 * @return object LdapPerson
+	 * @access public
+	 * @since 3/25/09
+	 */
+	public function getGroupMembers ($id) {
+		$id = strval($id);
+		// Match a LDAP DN
+		if (!preg_match('/^[a-z0-9_=,.\'&\s-]+$/i', $id))
+			throw new InvalidArgumentException("id '".$id."' is not valid format.");
+		
+		$filter = '(memberOf='.$id.')';
+		$attributes = array_merge(
+							array(	$this->_config['GroupIdAttribute'], 
+									$this->_config['UserIdAttribute'],
+									'objectClass'),
+							array_keys($this->_config['GroupAttributes']),
+							array_keys($this->_config['UserAttributes']));
+		
+		print "<pre>";
+		print_r($this->_config['BaseDN']);
+		print "\n";
+		print_r($filter);
+		print "\n";
+		print_r($attributes);
+		print "</pre>";
+		
+		$result = ldap_search($this->_connection, $this->_config['BaseDN'], $filter, $attributes);
+						
+		if (ldap_errno($this->_connection))
+			throw new LDAPException("Read failed for (memberOf=".$id.") with message: ".ldap_error($this->_connection).", #".ldap_errno($this->_connection));
+		
+		$entries = ldap_get_entries($this->_connection, $result);
+		ldap_free_result($result);
+		
+		if (!intval($entries['count']))
+			throw new UnknownIdException("Could not find a group matching '$id'.");
+		
+		if (intval($entries['count']) > 1)
+			throw new OperationFailedException("Found more than one group matching '$id'.");
+		
+		return new LdapGroup($this->_config['GroupIdAttribute'], $this->_config['GroupAttributes'], $entries[0]);
 	}
 }
 

@@ -44,6 +44,8 @@ require_once(dirname(__FILE__).'/config.inc.php');
 require_once(dirname(__FILE__).'/lib/HarmoniException.class.php');
 require_once(dirname(__FILE__).'/lib/ErrorPrinter.class.php');
 require_once(dirname(__FILE__).'/lib/LdapConnector.class.php');
+require_once(dirname(__FILE__).'/lib/XmlPrinter.class.php');
+
 
 try {	 
 	 /*********************************************************
@@ -70,12 +72,10 @@ try {
 				throw new InvalidArgumentException("query '".$_GET['query']."' is not valid format.");
 			break;
 		case 'get_group':
-			if (isset($_GET['include_members']) && $_GET['include_members'] != 'true' && $_GET['include_members'] != 'false')
-				throw new InvalidArgumentException("include_members must be 'true' or 'false'");
 			if (!isset($_GET['id']))
 				throw new NullArgumentException('You must specify an id');
 			// Match a group DN
-			if (!preg_match('/^[a-z0-9_=,.\'&\s-]$/i', $_GET['id']))
+			if (!preg_match('/^[a-z0-9_=,.\'&\s-]+$/i', $_GET['id']))
 				throw new InvalidArgumentException("id '".$_GET['id']."' is not valid format.");
 			break;
 		case 'get_user':
@@ -83,6 +83,13 @@ try {
 				throw new NullArgumentException('You must specify an id');
 			// Match a numeric ID
 			if (!preg_match('/^[0-9]+$/', $_GET['id']))
+				throw new InvalidArgumentException("id '".$_GET['id']."' is not valid format.");
+			break;
+		case 'get_group_members':
+			if (!isset($_GET['id']))
+				throw new NullArgumentException('You must specify an id');
+			// Match a group DN
+			if (!preg_match('/^[a-z0-9_=,.\'&\s-]+$/i', $_GET['id']))
 				throw new InvalidArgumentException("id '".$_GET['id']."' is not valid format.");
 			break;
 		default:
@@ -96,16 +103,19 @@ try {
 		$connector->connect();
 		 switch ($_GET['action']) {
 			case 'search_groups':
-				$results = array_merge($results, $connector->searchGroups($_GET['query'], $_GET['include_members']));
+				$results = array_merge($results, $connector->searchGroups($_GET['query']));
 				break;
 			case 'search_users':
 				$results = array_merge($results, $connector->searchUsers($_GET['query']));
 				break;
 			case 'get_group':
-				$results = array_merge($results, $connector->getGroup($_GET['id'], $_GET['include_members']));
+				$results = array_merge($results, array($connector->getGroup($_GET['id'])));
 				break;
 			case 'get_user':
-				$results = array_merge($results, $connector->getUser($_GET['id']));
+				$results = array_merge($results, array($connector->getUser($_GET['id'])));
+				break;
+			case 'get_group_members':
+				$results = array_merge($results, array($connector->getGroupMembers($_GET['id'])));
 				break;
 			default:
 				throw new UnknownActionException('action, \''.$_GET['action'].'\' is not one of [search_users, search_groups, get_user, get_group].');
@@ -114,8 +124,9 @@ try {
 	}
 	
 	@header('Content-Type: text/plain');
-
-	print_r($results);
+	
+	$printer = new XmlPrinter;
+	$printer->output($results);
 
 // Handle certain types of uncaught exceptions specially. In particular,
 // Send back HTTP Headers indicating that an error has ocurred to help prevent
