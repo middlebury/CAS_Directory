@@ -60,15 +60,15 @@ class DomXmlPrinter {
 			$elem = $this->doc->documentElement->appendChild($this->doc->createElementNS('http://www.yale.edu/tp/cas', 'cas:entry'));
 			
 			if ($userOrGroup->isGroup())
-				$elem->appendChild($this->doc->createElementNS('http://www.yale.edu/tp/cas', 'cas:group', $userOrGroup->getId()));
+				$elem->appendChild($this->doc->createElementNS('http://www.yale.edu/tp/cas', 'cas:group', htmlspecialchars($userOrGroup->getId())));
 			else
-				$elem->appendChild($this->doc->createElementNS('http://www.yale.edu/tp/cas', 'cas:user', $userOrGroup->getId()));
+				$elem->appendChild($this->doc->createElementNS('http://www.yale.edu/tp/cas', 'cas:user', htmlspecialchars($userOrGroup->getId())));
 			
 			foreach ($userOrGroup->getAttributeKeys() as $attribute) {
 				foreach ($userOrGroup->getAttributeValues($attribute) as $value) {
 					$attraElem = $elem->appendChild($this->doc->createElementNS('http://www.yale.edu/tp/cas', 'cas:attribute'));
 					$attraElem->setAttribute('name', $attribute);
-					$attraElem->setAttribute('value', $value);
+					$attraElem->setAttribute('value', htmlspecialchars($value));
 				}
 			}
 		} catch (OperationFailedException $e) {

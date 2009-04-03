@@ -74,6 +74,9 @@ try {
 			case 'search_users':
 				$results = array_merge($results, $connector->searchUsers($_GET));
 				break;
+			case 'search_users_by_attributes':
+				$results = array_merge($results, $connector->searchUsersByAttributes($_GET));
+				break;
 			case 'get_group':
 				$results = array_merge($results, array($connector->getGroup($_GET)));
 				break;

@@ -256,6 +256,61 @@ class LdapConnector {
 		ldap_free_result($result);
 		
 		$numEntries = intval($entries['count']);
+		$matches = array();
+		for ($i = 0; $i < $numEntries; $i++) {
+// 			print "\t".$entries[$i]['dn']."\n";
+			$matches[] = new LdapUser($this->_config['UserIdAttribute'], $this->_config['UserAttributes'], $entries[$i]);
+		}
+		return $matches;
+	}
+	
+	/**
+	 * Answer an array of users by search
+	 * 
+	 * @param array $args Must include a 'query' element.
+	 * @return array of LdapPerson objects
+	 * @access public
+	 * @since 4/2/09
+	 */
+	public function searchUsersByAttributes ($args) {
+		if (isset($args['strict']) && strtolower($args['strict']) == 'false')
+			$strict = false;
+		else
+			$strict = true;
+		
+		$terms = array();
+		foreach ($args as $key => $val) {
+			$ldapKey = array_search($key, $this->_config['UserAttributes']);
+			if ($ldapKey !== FALSE) {
+				// Match a search string that might match a username, email address, first and/or last name.
+				if (!preg_match('/^[a-z0-9_,.\'&\s@-]+$/i', $val))
+					throw new InvalidArgumentException("Attribute '$val' is not valid format.");
+				if ($strict)
+					$terms[] = '('.$ldapKey.'='.$val.')';
+				else
+					$terms[] = '('.$ldapKey.'=*'.$val.'*)';
+			}
+		}
+		
+		if (!count($terms))
+			throw new NullArgumentException("No attributes specified for search");
+		
+		$filter = '(&'.implode('', $terms).')';
+		
+// 		print $filter."\n";
+		
+		$result = ldap_search($this->_connection, $this->_config['UserBaseDN'], 
+						$filter, 
+						array_merge(array($this->_config['UserIdAttribute'], 'objectClass'), array_keys($this->_config['UserAttributes'])));
+						
+		if (ldap_errno($this->_connection))
+			throw new LDAPException("Read failed for filter '$filter' with message: ".ldap_error($this->_connection));
+		
+		$entries = ldap_get_entries($this->_connection, $result);
+		ldap_free_result($result);
+		
+		$numEntries = intval($entries['count']);
+		$matches = array();
 		for ($i = 0; $i < $numEntries; $i++) {
 // 			print "\t".$entries[$i]['dn']."\n";
 			$matches[] = new LdapUser($this->_config['UserIdAttribute'], $this->_config['UserAttributes'], $entries[$i]);
@@ -274,10 +329,28 @@ class LdapConnector {
 	public function searchGroups ($args) {
 		if (!isset($args['query']))
 			throw new NullArgumentException('You must specify an query');
-				
+		
 		$filter = $this->buildFilterFromQuery($args['query']);
 		
-		throw new UnimplementedException();
+// 		print $filter."\n";
+		
+		$result = ldap_search($this->_connection, $this->_config['GroupBaseDN'], 
+						$filter, 
+						array_merge(array($this->_config['GroupIdAttribute'], 'objectClass'), array_keys($this->_config['GroupAttributes'])));
+						
+		if (ldap_errno($this->_connection))
+			throw new LDAPException("Read failed for filter '$filter' with message: ".ldap_error($this->_connection));
+		
+		$entries = ldap_get_entries($this->_connection, $result);
+		ldap_free_result($result);
+		
+		$numEntries = intval($entries['count']);
+		$matches = array();
+		for ($i = 0; $i < $numEntries; $i++) {
+// 			print "\t".$entries[$i]['dn']."\n";
+			$matches[] = new LdapGroup($this->_config['GroupIdAttribute'], $this->_config['GroupAttributes'], $entries[$i]);
+		}
+		return $matches;
 	}
 	
 	/*********************************************************
