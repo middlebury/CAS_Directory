@@ -48,54 +48,20 @@ require_once(dirname(__FILE__).'/lib/DomXmlPrinter.class.php');
 
 
 try {	 
-	 /*********************************************************
-	  * Do proxy authentication and return an error state if
-	  * authentication fails
-	  *********************************************************/
-	 // @todo
+	/*********************************************************
+	 * Do proxy authentication and return an error state if
+	 * authentication fails
+	 *********************************************************/
+	// @todo
 	 
-	 /*********************************************************
-	  * Parse/validate our arguments and run the specified action.
-	  *********************************************************/
-	 if (!isset($_GET['action']))
-	 	throw new UnknownActionException('No action specified.');
-	 
-	 switch ($_GET['action']) {
-		case 'search_groups':
-			if (isset($_GET['include_members']) && $_GET['include_members'] != 'true' && $_GET['include_members'] != 'false')
-				throw new InvalidArgumentException("include_members must be 'true' or 'false'");
-		case 'search_users':
-			if (!isset($_GET['query']))
-				throw new NullArgumentException('You must specify a query');
-			// Match a search string that might match a username, email address, first and/or last name.
-			if (!preg_match('/^[a-z0-9_,.\'&\s@-]+$/i', $_GET['query']))
-				throw new InvalidArgumentException("query '".$_GET['query']."' is not valid format.");
-			break;
-		case 'get_group':
-			if (!isset($_GET['id']))
-				throw new NullArgumentException('You must specify an id');
-			// Match a group DN
-			if (!preg_match('/^[a-z0-9_=,.\'&\s-]+$/i', $_GET['id']))
-				throw new InvalidArgumentException("id '".$_GET['id']."' is not valid format.");
-			break;
-		case 'get_user':
-			if (!isset($_GET['id']))
-				throw new NullArgumentException('You must specify an id');
-			// Match a numeric ID
-			if (!preg_match('/^[0-9]+$/', $_GET['id']))
-				throw new InvalidArgumentException("id '".$_GET['id']."' is not valid format.");
-			break;
-		case 'get_group_members':
-			if (!isset($_GET['id']))
-				throw new NullArgumentException('You must specify an id');
-			// Match a group DN
-			if (!preg_match('/^[a-z0-9_=,.\'&\s-]+$/i', $_GET['id']))
-				throw new InvalidArgumentException("id '".$_GET['id']."' is not valid format.");
-			break;
-		default:
-			throw new UnknownActionException('action, \''.$_GET['action'].'\' is not one of [search_users, search_groups, get_user, get_group].');
-	}
+	/*********************************************************
+	 * Parse/validate our arguments and run the specified action.
+	 *********************************************************/
+	if (!isset($_GET['action']))
+		throw new UnknownActionException('No action specified.');
+	
 	$start = microtime();
+	@header('Content-Type: text/plain');
 	
 	$results = array();
 	foreach ($ldapConfig as $connectorConfig) {
@@ -103,19 +69,19 @@ try {
 		$connector->connect();
 		 switch ($_GET['action']) {
 			case 'search_groups':
-				$results = array_merge($results, $connector->searchGroups($_GET['query']));
+				$results = array_merge($results, $connector->searchGroups($_GET));
 				break;
 			case 'search_users':
-				$results = array_merge($results, $connector->searchUsers($_GET['query']));
+				$results = array_merge($results, $connector->searchUsers($_GET));
 				break;
 			case 'get_group':
-				$results = array_merge($results, array($connector->getGroup($_GET['id'])));
+				$results = array_merge($results, array($connector->getGroup($_GET)));
 				break;
 			case 'get_user':
-				$results = array_merge($results, array($connector->getUser($_GET['id'])));
+				$results = array_merge($results, array($connector->getUser($_GET)));
 				break;
 			case 'get_group_members':
-				$results = array_merge($results, $connector->getGroupMembers($_GET['id']));
+				$results = array_merge($results, $connector->getGroupMembers($_GET));
 				break;
 			default:
 				throw new UnknownActionException('action, \''.$_GET['action'].'\' is not one of [search_users, search_groups, get_user, get_group].');
@@ -123,7 +89,6 @@ try {
 		$connector->disconnect();
 	}
 	$end = microtime();
-	@header('Content-Type: text/plain');
 		
 	$printer = new DomXmlPrinter;
 	$printer->output($results);

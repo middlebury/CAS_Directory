@@ -112,19 +112,31 @@ class LdapConnector {
 		$this->_connection = NULL;
 	}
 	
+	
+	/*********************************************************
+	 * Action methods - Start
+	 *********************************************************/
+	
+	
 	/**
 	 * Answer a single user by Id
 	 * 
-	 * @param string $id	A numeric string or integer
+	 * @param array $args Must include a numeric 'id' value.
 	 * @return object LdapPerson
 	 * @access public
 	 * @since 3/25/09
 	 */
-	public function getUser ($id) {
-		$id = strval($id);
+	public function getUser ($args) {
+		if (!isset($args['id']))
+			throw new NullArgumentException('You must specify an id');
+		
+		$id = $args['id'];
+		
 		// Match a numeric ID
 		if (!preg_match('/^[0-9]+$/', $id))
 			throw new InvalidArgumentException("id '".$id."' is not valid format.");
+		
+		
 		
 		$result = ldap_search($this->_connection, $this->_config['UserBaseDN'], 
 						"(".$this->_config['UserIdAttribute']."=".$id.")", 
@@ -144,6 +156,133 @@ class LdapConnector {
 		
 		return new LdapUser($this->_config['UserIdAttribute'], $this->_config['UserAttributes'], $entries[0]);
 	}
+	
+	/**
+	 * Answer a single user by Id
+	 * 
+	 * @param array $args Must include a string 'id' value.
+	 * @return object LdapPerson
+	 * @access public
+	 * @since 3/25/09
+	 */
+	public function getGroup ($args, $includeMembers = false) {
+		if (!isset($args['id']))
+			throw new NullArgumentException('You must specify an id');
+		
+		$id = $this->escapeDn($id);
+		
+		
+		
+		$attributes = array_merge(	array($this->_config['GroupIdAttribute'], 'objectClass'), 	
+									array_keys($this->_config['GroupAttributes']));
+		if ($includeMembers)
+			$attributes[] = 'member';
+		
+		$result = ldap_search($this->_connection, $this->_config['GroupBaseDN'], 
+						"(".$this->_config['GroupIdAttribute']."=".$id.")", 
+						$attributes);
+						
+		if (ldap_errno($this->_connection))
+			throw new LDAPException("Read failed for ".$this->_config['GroupIdAttribute']." '$id' with message: ".ldap_error($this->_connection));
+		
+		$entries = ldap_get_entries($this->_connection, $result);
+		ldap_free_result($result);
+		
+		if (!intval($entries['count']))
+			throw new UnknownIdException("Could not find a group matching '$id'.");
+		
+		if (intval($entries['count']) > 1)
+			throw new OperationFailedException("Found more than one group matching '$id'.");
+		
+		if ($includeMembers)
+			return new LdapGroup($this->_config['GroupIdAttribute'], array_merge($this->_config['GroupAttributes'], array('member' => 'Members')), $entries[0]);
+		else
+			return new LdapGroup($this->_config['GroupIdAttribute'], $this->_config['GroupAttributes'], $entries[0]);
+	}
+	
+	/**
+	 * Answer an array of group members
+	 * 
+	 * @param array $args Must include a string 'id' value.
+	 * @return array of LdapPerson objects
+	 * @access public
+	 * @since 3/25/09
+	 */
+	public function getGroupMembers ($args) {
+		$group = $this->getGroup($args, true);
+		
+		$memberDns = $group->getAttributeValues('Members');
+		if (!count($memberDns))
+			return array();
+		
+		$members = array();
+		foreach ($memberDns as $dn) {
+			try {
+				if (strpos($dn, $this->_config['GroupBaseDN']) !== FALSE)
+					$members[] = $this->getGroup($dn);
+				else if (strpos($dn, $this->_config['UserBaseDN']) !== FALSE)
+					$members[] = $this->getUserByDn($dn);
+			} catch (OperationFailedException $e) {
+// 				print "<pre>".$e->getMessage()."</pre>";
+			}
+		}
+		return $members;
+	}
+	
+	/**
+	 * Answer an array of users by search
+	 * 
+	 * @param array $args Must include a 'query' element.
+	 * @return array of LdapPerson objects
+	 * @access public
+	 * @since 4/2/09
+	 */
+	public function searchUsers ($args) {
+		if (!isset($args['query']))
+			throw new NullArgumentException('You must specify an query');
+		
+		$filter = $this->buildFilterFromQuery($args['query']);
+		
+// 		print $filter."\n";
+		
+		$result = ldap_search($this->_connection, $this->_config['UserBaseDN'], 
+						$filter, 
+						array_merge(array($this->_config['UserIdAttribute'], 'objectClass'), array_keys($this->_config['UserAttributes'])));
+						
+		if (ldap_errno($this->_connection))
+			throw new LDAPException("Read failed for filter '$filter' with message: ".ldap_error($this->_connection));
+		
+		$entries = ldap_get_entries($this->_connection, $result);
+		ldap_free_result($result);
+		
+		$numEntries = intval($entries['count']);
+		for ($i = 0; $i < $numEntries; $i++) {
+// 			print "\t".$entries[$i]['dn']."\n";
+			$matches[] = new LdapUser($this->_config['UserIdAttribute'], $this->_config['UserAttributes'], $entries[$i]);
+		}
+		return $matches;
+	}
+	
+	/**
+	 * Answer an array of groups by search
+	 * 
+	 * @param array $args Must include a 'query' element.
+	 * @return array of LdapPerson objects
+	 * @access public
+	 * @since 4/2/09
+	 */
+	public function searchGroups ($args) {
+		if (!isset($args['query']))
+			throw new NullArgumentException('You must specify an query');
+				
+		$filter = $this->buildFilterFromQuery($args['query']);
+		
+		throw new UnimplementedException();
+	}
+	
+	/*********************************************************
+	 * Action methods - End
+	 *********************************************************/
 	
 	/**
 	 * Answer a single user by DN
@@ -176,103 +315,41 @@ class LdapConnector {
 	}
 	
 	/**
-	 * Answer a single user by Id
+	 * Build a search filter from a query.
 	 * 
-	 * @param string $id	A numeric string or integer
-	 * @return object LdapPerson
-	 * @access public
-	 * @since 3/25/09
+	 * @param string $query
+	 * @return string 
+	 * @access protected
+	 * @since 4/2/09
 	 */
-	public function getGroup ($id, $includeMembers = false) {
-		$id = $this->escapeDn($id);
+	protected function buildFilterFromQuery ($query) {
+		// Match a search string that might match a username, email address, first and/or last name.
+		if (!preg_match('/^[a-z0-9_,.\'&\s@-]+$/i', $query))
+			throw new InvalidArgumentException("query '$query' is not valid format.");
 		
-		$attributes = array_merge(	array($this->_config['GroupIdAttribute'], 'objectClass'), 	
-									array_keys($this->_config['GroupAttributes']));
-		if ($includeMembers)
-			$attributes[] = 'member';
+		$terms = explode(" ", $query);
 		
-		$result = ldap_search($this->_connection, $this->_config['GroupBaseDN'], 
-						"(".$this->_config['GroupIdAttribute']."=".$id.")", 
-						$attributes);
-						
-		if (ldap_errno($this->_connection))
-			throw new LDAPException("Read failed for ".$this->_config['GroupIdAttribute']." '$id' with message: ".ldap_error($this->_connection));
+		ob_start();
 		
-		$entries = ldap_get_entries($this->_connection, $result);
-		ldap_free_result($result);
+		print '(|';
 		
-		if (!intval($entries['count']))
-			throw new UnknownIdException("Could not find a group matching '$id'.");
-		
-		if (intval($entries['count']) > 1)
-			throw new OperationFailedException("Found more than one group matching '$id'.");
-		
-		if ($includeMembers)
-			return new LdapGroup($this->_config['GroupIdAttribute'], array_merge($this->_config['GroupAttributes'], array('member' => 'Members')), $entries[0]);
-		else
-			return new LdapGroup($this->_config['GroupIdAttribute'], $this->_config['GroupAttributes'], $entries[0]);
-	}
-	
-	/**
-	 * Answer an array of group members
-	 * 
-	 * @param string $id	A numeric string or integer
-	 * @return object LdapPerson
-	 * @access public
-	 * @since 3/25/09
-	 */
-	public function getGroupMembers ($id) {
-		$group = $this->getGroup($id, true);
-		
-		$memberDns = $group->getAttributeValues('Members');
-		if (!count($memberDns))
-			return array();
-		
-// 		$filter = "(|";
-// 		foreach ($memberDns as $dn) {
-// 			$filter .= "(distinguishedName=\"".$this->escapeDn($dn)."\")";
-// 		}
-// 		$filter .= ")";
-// 		
-// 		$attributes = array_merge(
-// 							array(	$this->_config['GroupIdAttribute'], 
-// 									$this->_config['UserIdAttribute'],
-// 									'objectClass'),
-// 							array_keys($this->_config['GroupAttributes']),
-// 							array_keys($this->_config['UserAttributes']));
-// 		
-// 		print "<pre>";
-// 		print_r($this->_config['BaseDN']);
-// 		print "\n";
-// 		print_r($filter);
-// 		print "\n";
-// 		print_r($attributes);
-// 		print "</pre>";
-// 		
-// 		$result = ldap_search($this->_connection, $this->_config['BaseDN'], $filter, $attributes);
-// 						
-// 		if (ldap_errno($this->_connection))
-// 			throw new LDAPException("Read failed for $filter with message: ".ldap_error($this->_connection).", #".ldap_errno($this->_connection));
-// 		
-// 		$entries = ldap_get_entries($this->_connection, $result);
-// 		ldap_free_result($result);
-// 		
-// 		print "<pre>";
-// 		print_r($entries);
-// 		exit;
-// 		
-		$members = array();
-		foreach ($memberDns as $dn) {
-			try {
-				if (strpos($dn, $this->_config['GroupBaseDN']) !== FALSE)
-					$members[] = $this->getGroup($dn);
-				else if (strpos($dn, $this->_config['UserBaseDN']) !== FALSE)
-					$members[] = $this->getUserByDn($dn);
-			} catch (OperationFailedException $e) {
-// 				print "<pre>".$e->getMessage()."</pre>";
+		if (count($terms) == 1) {
+			foreach ($this->_config['SingleTermOnlySearchAttributes'] as $attribute) {
+				print '('.$attribute.'=*'.$terms[0].'*)';
 			}
 		}
-		return $members;
+		
+		foreach ($this->_config['AnyTermSearchAttributes'] as $attribute) {
+			print '(&';
+			foreach ($terms as $term) {
+				print '('.$attribute.'=*'.$term.'*)';
+			}
+			print ')';
+		}
+		
+		print ')';
+		
+		return ob_get_clean();
 	}
 	
 	/**
