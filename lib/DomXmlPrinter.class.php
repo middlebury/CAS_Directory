@@ -50,6 +50,22 @@ class DomXmlPrinter {
 	}
 	
 	/**
+	 * Answer the XML string of the entries
+	 * 
+	 * @param array $entries
+	 * @return void
+	 * @access public
+	 * @since 3/30/09
+	 */
+	public function getOutput (array $entries) {
+		foreach ($entries as $userOrGroup) {
+			$this->addEntry($userOrGroup);
+		}
+		
+		return $this->doc->saveXML();
+	}
+	
+	/**
 	 * Add an entry to our document.
 	 * 
 	 * @param  LdapUser $userOrGroup
