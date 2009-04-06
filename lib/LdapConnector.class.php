@@ -169,7 +169,7 @@ class LdapConnector {
 		if (!isset($args['id']))
 			throw new NullArgumentException('You must specify an id');
 		
-		$id = $this->escapeDn($id);
+		$id = $this->escapeDn($args['id']);
 		
 		
 		
@@ -189,7 +189,7 @@ class LdapConnector {
 		ldap_free_result($result);
 		
 		if (!intval($entries['count']))
-			throw new UnknownIdException("Could not find a group matching '$id'.");
+			throw new UnknownIdException("Could not find a group matching '$id' for ".$args['id'].".");
 		
 		if (intval($entries['count']) > 1)
 			throw new OperationFailedException("Found more than one group matching '$id'.");
@@ -219,12 +219,13 @@ class LdapConnector {
 		foreach ($memberDns as $dn) {
 			try {
 				if (strpos($dn, $this->_config['GroupBaseDN']) !== FALSE)
-					$members[] = $this->getGroup($dn);
+					$members[] = $this->getGroup(array('id' => $dn));
 				else if (strpos($dn, $this->_config['UserBaseDN']) !== FALSE)
 					$members[] = $this->getUserByDn($dn);
 			} catch (OperationFailedException $e) {
 // 				print "<pre>".$e->getMessage()."</pre>";
 			}
+			
 		}
 		return $members;
 	}
