@@ -409,6 +409,9 @@ class LdapConnector {
 		if (!preg_match('/^[a-z0-9_,.\'&\s@-]+$/i', $query))
 			throw new InvalidArgumentException("query '$query' is not valid format.");
 		
+		if (strlen($query) < 2)
+			throw new InvalidArgumentException("query '$query' is too short. Please specify at least two characters.");
+		
 		$terms = explode(" ", $query);
 		
 		ob_start();
