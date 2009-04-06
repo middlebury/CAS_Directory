@@ -51,7 +51,7 @@ require_once(dirname(__FILE__).'/lib/HarmoniException.class.php');
 require_once(dirname(__FILE__).'/lib/ErrorPrinter.class.php');
 require_once(dirname(__FILE__).'/lib/LdapConnector.class.php');
 require_once(dirname(__FILE__).'/lib/DomXmlPrinter.class.php');
-require_once(dirname(__FILE__).'/lib/phpcas/source/CAS.php');
+require_once(PHPCAS_PATH);
 
 try {
 	
