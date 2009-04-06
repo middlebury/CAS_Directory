@@ -260,7 +260,11 @@ class LdapConnector {
 		$matches = array();
 		for ($i = 0; $i < $numEntries; $i++) {
 // 			print "\t".$entries[$i]['dn']."\n";
-			$matches[] = new LdapUser($this->_config['UserIdAttribute'], $this->_config['UserAttributes'], $entries[$i]);
+			try {
+				$matches[] = new LdapUser($this->_config['UserIdAttribute'], $this->_config['UserAttributes'], $entries[$i]);
+			} catch (OperationFailedException $e) {
+// 				print "<pre>".$e->getMessage()."</pre>";
+			}
 		}
 		return $matches;
 	}
@@ -314,7 +318,11 @@ class LdapConnector {
 		$matches = array();
 		for ($i = 0; $i < $numEntries; $i++) {
 // 			print "\t".$entries[$i]['dn']."\n";
-			$matches[] = new LdapUser($this->_config['UserIdAttribute'], $this->_config['UserAttributes'], $entries[$i]);
+			try {
+				$matches[] = new LdapUser($this->_config['UserIdAttribute'], $this->_config['UserAttributes'], $entries[$i]);
+			} catch (OperationFailedException $e) {
+// 				print "<pre>".$e->getMessage()."</pre>";
+			}
 		}
 		return $matches;
 	}
