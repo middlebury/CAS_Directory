@@ -77,7 +77,8 @@ try {
 	if (!isset($_GET['action']))
 		throw new UnknownActionException('No action specified.');	
 	
-	$start = microtime();
+	if (SHOW_TIMERS)
+		$start = microtime();
 	
 	$results = array();
 	foreach ($ldapConfig as $connectorConfig) {
@@ -107,23 +108,28 @@ try {
 		}
 		$connector->disconnect();
 	}
-	$end = microtime();
+	
+	if (SHOW_TIMERS)
+		$end = microtime();
 		
 	$printer = new DomXmlPrinter;
 	$printer->output($results);
-	
-	$end2 = microtime();
-	list($sm, $ss) = explode(" ", $start);
-	list($em, $es) = explode(" ", $end);
-	$s = $ss + $sm;
-	$e = $es + $em;
-	print "\n<time>".($e-$s)."</time>";
-	list($sm, $ss) = explode(" ", $end);
-	list($em, $es) = explode(" ", $end2);
-	$s = $ss + $sm;
-	$e = $es + $em;
-	print "\n<output_time>".($e-$s)."</output_time>";
-	print "\n<number>".(count($results))."</number>";
+		
+	if (SHOW_TIMERS) {
+		$end2 = microtime();
+		
+		list($sm, $ss) = explode(" ", $start);
+		list($em, $es) = explode(" ", $end);
+		$s = $ss + $sm;
+		$e = $es + $em;
+		print "\n<time>".($e-$s)."</time>";
+		list($sm, $ss) = explode(" ", $end);
+		list($em, $es) = explode(" ", $end2);
+		$s = $ss + $sm;
+		$e = $es + $em;
+		print "\n<output_time>".($e-$s)."</output_time>";
+		print "\n<number>".(count($results))."</number>";
+	}
 	
 // Handle certain types of uncaught exceptions specially. In particular,
 // Send back HTTP Headers indicating that an error has ocurred to help prevent
