@@ -125,7 +125,7 @@ try {
 		apc_store($cacheKey, $xmlString, RESULT_CACHE_TTL);
 	}
 	
-	@header('Content-Type: text/plain');
+	@header('Content-Type: text/xml');
 	print $xmlString;
 		
 	if (SHOW_TIMERS) {
