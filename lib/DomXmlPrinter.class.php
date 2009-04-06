@@ -44,6 +44,8 @@ class DomXmlPrinter {
 		foreach ($entries as $userOrGroup) {
 			$this->addEntry($userOrGroup);
 		}
+		
+		@header('Content-Type: text/plain');
 		print $this->doc->saveXML();
 	}
 	

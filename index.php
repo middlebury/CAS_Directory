@@ -40,28 +40,44 @@
  * @license http://www.gnu.org/copyleft/gpl.html GNU General Public License (GPL)
  */ 
 
+$name = preg_replace('/[^a-z0-9_-]/i', '', dirname($_SERVER['SCRIPT_NAME']));
+session_name($name);
+
+session_start();
+
+
 require_once(dirname(__FILE__).'/config.inc.php');
 require_once(dirname(__FILE__).'/lib/HarmoniException.class.php');
 require_once(dirname(__FILE__).'/lib/ErrorPrinter.class.php');
 require_once(dirname(__FILE__).'/lib/LdapConnector.class.php');
 require_once(dirname(__FILE__).'/lib/DomXmlPrinter.class.php');
+require_once(dirname(__FILE__).'/lib/phpcas/source/CAS.php');
 
-
-try {	 
+try {
+	
 	/*********************************************************
 	 * Do proxy authentication and return an error state if
-	 * authentication fails
+	 * authentication fails.
 	 *********************************************************/
-	// @todo
-	 
+	// set debug mode
+	phpCAS::setDebug();
+	
+	// initialize phpCAS
+	phpCAS::client(CAS_VERSION_2_0, CAS_HOST, CAS_PORT, CAS_PATH, false);
+	
+	// no SSL validation for the CAS server
+	phpCAS::setNoCasServerValidation();
+	
+	// force CAS authentication
+	phpCAS::forceAuthentication();
+	
 	/*********************************************************
 	 * Parse/validate our arguments and run the specified action.
 	 *********************************************************/
 	if (!isset($_GET['action']))
-		throw new UnknownActionException('No action specified.');
+		throw new UnknownActionException('No action specified.');	
 	
 	$start = microtime();
-	@header('Content-Type: text/plain');
 	
 	$results = array();
 	foreach ($ldapConfig as $connectorConfig) {

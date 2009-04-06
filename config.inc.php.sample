@@ -1,5 +1,10 @@
 <?php
 
+define('CAS_HOST', 'login.middlebury.edu');
+define('CAS_PORT', 443);
+define('CAS_PATH', '/cas');
+
+
 $ldapConfig = array();
 
 // Configure the first LDAP Server.
@@ -8,10 +13,11 @@ $ldapConfig[0]['LDAPHost']				= 'ad.middlebury.edu';
 $ldapConfig[0]['LDAPPort']				= 389;
 $ldapConfig[0]['BindDN']				= 'view_only_admin_user';
 $ldapConfig[0]['BindDNPassword']		= 'password';
+$ldapConfig[0]['BaseDN']				= 'DC=middlebury,DC=edu';
 $ldapConfig[0]['UserBaseDN']			= 'CN=Users,DC=middlebury,DC=edu';
 $ldapConfig[0]['GroupBaseDN']			= 'OU=Groups,DC=middlebury,DC=edu';
 $ldapConfig[0]['UserIdAttribute']		= 'MiddID';
-$ldapConfig[0]['GroupIdAttribute']	= 'dn';
+$ldapConfig[0]['GroupIdAttribute']		= 'distinguishedName';
 $ldapConfig[0]['UserAttributes'] 		= array(
 											'givenName'						=> 'FirstName',
 											'sn'							=> 'LastName',
@@ -22,7 +28,16 @@ $ldapConfig[0]['UserAttributes'] 		= array(
 											'memberOf'						=> 'MemberOf'
 											);
 $ldapConfig[0]['GroupAttributes']		= array(
-											'mail'							=> 'EMail',
-											'member'						=> 'Member'
+											'mail'							=> 'EMail'
+											);
+$ldapConfig[0]['AnyTermSearchAttributes']	= array(
+											'displayName'
+											);											
+$ldapConfig[0]['SingleTermOnlySearchAttributes']	= array(
+											'mail',
+											'telephonNumber',
+											'sAMAccountName'
 											);
 
+define('DISPLAY_ERROR_BACKTRACE', false);
+define('SHOW_TIMERS', false);
