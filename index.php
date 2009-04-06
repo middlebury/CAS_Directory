@@ -151,6 +151,8 @@ try {
 	ErrorPrinter::handleException($e, 404);
 } catch (NullArgumentException $e) {
 	ErrorPrinter::handleException($e, 400);
+} catch (InvalidArgumentException $e) {
+	ErrorPrinter::handleException($e, 400);
 } catch (PermissionDeniedException $e) {
 	ErrorPrinter::handleException($e, 403);
 } catch (UnknownIdException $e) {
