@@ -55,22 +55,27 @@ require_once(PHPCAS_PATH);
 
 try {
 	
-	/*********************************************************
-	 * Do proxy authentication and return an error state if
-	 * authentication fails.
-	 *********************************************************/
-	// set debug mode
-	phpCAS::setDebug();
-	
-	// initialize phpCAS
-	phpCAS::client(CAS_VERSION_2_0, CAS_HOST, CAS_PORT, CAS_PATH, false);
-	
-	// no SSL validation for the CAS server
-	phpCAS::setNoCasServerValidation();
-	
-	// force CAS authentication
-	phpCAS::forceAuthentication();
-	
+	if (defined('ADMIN_ACCESS') && $_GET['ADMIN_ACCESS'] && $_GET['ADMIN_ACCESS'] == ADMIN_ACCESS) {
+		// Skip authentication for admin scripts. 
+		// This may be useful for using the directory as a datasource for updater
+		// scripts.
+	} else {
+		/*********************************************************
+		 * Do proxy authentication and return an error state if
+		 * authentication fails.
+		 *********************************************************/
+		// set debug mode
+		phpCAS::setDebug();
+		
+		// initialize phpCAS
+		phpCAS::client(CAS_VERSION_2_0, CAS_HOST, CAS_PORT, CAS_PATH, false);
+		
+		// no SSL validation for the CAS server
+		phpCAS::setNoCasServerValidation();
+		
+		// force CAS authentication
+		phpCAS::forceAuthentication();
+	}
 	/*********************************************************
 	 * Parse/validate our arguments and run the specified action.
 	 *********************************************************/
