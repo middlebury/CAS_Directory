@@ -97,6 +97,9 @@ class LdapConnector {
 		if ($this->_connection == false)
 			throw new LDAPException ("LdapConnector::connect() - could not connect to LDAP host <b>".$this->_config['LDAPHost']."</b>!");
 		
+		ldap_set_option($this->_connection, LDAP_OPT_PROTOCOL_VERSION, 3);
+		ldap_set_option($this->_connection, LDAP_OPT_REFERRALS, 0);
+		
 		$this->_bind = @ldap_bind($this->_connection, $this->_config['BindDN'], $this->_config['BindDNPassword']);
 		if (!$this->_bind)
 			throw new LDAPException ("LdapConnector::connect() - could not bind to LDAP host <b>".$this->_config['LDAPHost']." using the BindDN and BindDNPassword given.</b>!");
