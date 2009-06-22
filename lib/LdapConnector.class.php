@@ -136,7 +136,7 @@ class LdapConnector {
 		$id = $args['id'];
 		
 		// Match a numeric ID
-		if (!preg_match('/^[0-9]+$/', $id))
+		if (!preg_match('/^[0-9A-F]+$/', $id))
 			throw new InvalidArgumentException("id '".$id."' is not valid format.");
 		
 		
