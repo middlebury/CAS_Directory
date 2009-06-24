@@ -45,3 +45,4 @@ $ldapConfig[0]['SingleTermOnlySearchAttributes']	= array(
 
 define('DISPLAY_ERROR_BACKTRACE', false);
 define('SHOW_TIMERS', false);
+define('SHOW_TIMERS_IN_OUTPUT', false);

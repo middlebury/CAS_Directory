@@ -157,7 +157,7 @@ class LdapConnector {
 		if (intval($entries['count']) > 1)
 			throw new OperationFailedException("Found more than one user matching '$id'.");
 		
-		return new LdapUser($this->_config['UserIdAttribute'], $this->_config['UserAttributes'], $entries[0]);
+		return new LdapUser($this, $this->_config['UserIdAttribute'], $this->_config['UserAttributes'], $entries[0]);
 	}
 	
 	/**
@@ -198,9 +198,9 @@ class LdapConnector {
 			throw new OperationFailedException("Found more than one group matching '$id'.");
 		
 		if ($includeMembers)
-			return new LdapGroup($this->_config['GroupIdAttribute'], array_merge($this->_config['GroupAttributes'], array('member' => 'Members')), $entries[0]);
+			return new LdapGroup($this, $this->_config['GroupIdAttribute'], array_merge($this->_config['GroupAttributes'], array('member' => 'Members')), $entries[0]);
 		else
-			return new LdapGroup($this->_config['GroupIdAttribute'], $this->_config['GroupAttributes'], $entries[0]);
+			return new LdapGroup($this, $this->_config['GroupIdAttribute'], $this->_config['GroupAttributes'], $entries[0]);
 	}
 	
 	/**
@@ -264,7 +264,7 @@ class LdapConnector {
 		for ($i = 0; $i < $numEntries; $i++) {
 // 			print "\t".$entries[$i]['dn']."\n";
 			try {
-				$matches[] = new LdapUser($this->_config['UserIdAttribute'], $this->_config['UserAttributes'], $entries[$i]);
+				$matches[] = new LdapUser($this, $this->_config['UserIdAttribute'], $this->_config['UserAttributes'], $entries[$i]);
 			} catch (OperationFailedException $e) {
 // 				print "<pre>".$e->getMessage()."</pre>";
 			}
@@ -322,7 +322,7 @@ class LdapConnector {
 		for ($i = 0; $i < $numEntries; $i++) {
 // 			print "\t".$entries[$i]['dn']."\n";
 			try {
-				$matches[] = new LdapUser($this->_config['UserIdAttribute'], $this->_config['UserAttributes'], $entries[$i]);
+				$matches[] = new LdapUser($this, $this->_config['UserIdAttribute'], $this->_config['UserAttributes'], $entries[$i]);
 			} catch (OperationFailedException $e) {
 // 				print "<pre>".$e->getMessage()."</pre>";
 			}
@@ -360,7 +360,7 @@ class LdapConnector {
 		$matches = array();
 		for ($i = 0; $i < $numEntries; $i++) {
 // 			print "\t".$entries[$i]['dn']."\n";
-			$matches[] = new LdapGroup($this->_config['GroupIdAttribute'], $this->_config['GroupAttributes'], $entries[$i]);
+			$matches[] = new LdapGroup($this, $this->_config['GroupIdAttribute'], $this->_config['GroupAttributes'], $entries[$i]);
 		}
 		return $matches;
 	}
@@ -396,7 +396,7 @@ class LdapConnector {
 		if (intval($entries['count']) > 1)
 			throw new OperationFailedException("Found more than one user matching '$dn'.");
 		
-		return new LdapUser($this->_config['UserIdAttribute'], $this->_config['UserAttributes'], $entries[0]);
+		return new LdapUser($this, $this->_config['UserIdAttribute'], $this->_config['UserAttributes'], $entries[0]);
 	}
 	
 	/**
@@ -456,6 +456,51 @@ class LdapConnector {
 		// @todo - Escape needed control characters.
 		
 		return $dn;
+	}
+	
+	private $ancestorGroups = array();
+	/**
+	 * Answer an array of DNs for the ancestors of the group passed
+	 * 
+	 * @param string $groupDN
+	 * @return array
+	 * @access public
+	 * @since 6/24/09
+	 */
+	public function getGroupAncestorDNs ($groupDN) {
+		if (!isset($this->ancestorGroups[$groupDN])) {
+			$allGroups = array();
+			
+			if (!$this->_connection) {
+				throw new LdapException("No connection available");
+			}
+			
+			$result = ldap_read($this->_connection, $groupDN, "(objectclass=*)", array('memberOf'));
+							
+			if (ldap_errno($this->_connection))
+				throw new LDAPException("Read failed for group distinguishedName '$groupDN' with message: ".ldap_error($this->_connection).".");
+			
+			$entries = ldap_get_entries($this->_connection, $result);
+			ldap_free_result($result);
+			
+			if (!intval($entries['count']))
+				throw new UnknownIdException("Could not find a group matching '$groupDN'.");
+			
+			if (intval($entries['count']) > 1)
+				throw new OperationFailedException("Found more than one group matching '$groupDN'.");
+			
+			if (!isset($entries[0]['memberof']))
+				return $allGroups;
+			
+			$numValues = intval($entries[0]['memberof']['count']);
+			for ($i = 0; $i < $numValues; $i++) {
+				$allGroups[] = $entries[0]['memberof'][$i];
+				$allGroups = array_merge($allGroups, $this->getGroupAncestorDNs($entries[0]['memberof'][$i]));
+			}
+			
+			$this->ancestorGroups[$groupDN] = $allGroups;
+		}
+		return $this->ancestorGroups[$groupDN];
 	}
 }
 

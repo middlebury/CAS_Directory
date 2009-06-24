@@ -21,6 +21,7 @@ class LdapUser {
 	/**
 	 * Constructor
 	 * 
+	 * @param LdapConnector $connector
 	 * @param string $idAttribute
 	 * @param array $attributeMap
 	 * @param array $entryArray
@@ -28,10 +29,11 @@ class LdapUser {
 	 * @access public
 	 * @since 3/30/09
 	 */
-	public function __construct ($idAttribute, array $attributeMap, array $entryArray) {
+	public function __construct (LdapConnector $connector, $idAttribute, array $attributeMap, array $entryArray) {
 		if (!strlen($idAttribute))
 			throw new InvalidArgumentException("No valid \$idAttribute specified.");
 		
+		$this->connector = $connector;
 		$this->idAttribute = $idAttribute;
 		$this->attributeMap = $attributeMap;
 		$this->entryArray = $entryArray;
@@ -41,6 +43,19 @@ class LdapUser {
 			$this->getId();
 		} catch (Exception $e) {
 			throw new OperationFailedException("Cannot create a user without an Id. DN: ".$this->entryArray['dn']);
+		}
+		
+		$this->groups = array();
+		// If we are fetching group members, recursively fetch ancestor groups
+		if (isset($this->entryArray['memberof'])) {
+			$numValues = intval($this->entryArray['memberof']['count']);
+			for ($i = 0; $i < $numValues; $i++) {
+				$this->groups[] = $this->entryArray['memberof'][$i];
+				$this->groups = array_merge($this->groups, $this->connector->getGroupAncestorDNs( $this->entryArray['memberof'][$i]));
+			}
+			$this->groups = array_unique($this->groups);
+			sort($this->groups);
+			unset($this->entryArray['memberof']);
 		}
 	}
 	
@@ -97,6 +112,9 @@ class LdapUser {
 	protected function getLdapAttributeValues ($attribute) {
 		$values = array();
 		$attribute = strtolower($attribute);
+		
+		if ($attribute == 'memberof')
+			return $this->groups;
 		
 		if (!isset($this->entryArray[$attribute]))
 			return $values;

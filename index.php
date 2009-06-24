@@ -53,6 +53,13 @@ require_once(dirname(__FILE__).'/lib/LdapConnector.class.php');
 require_once(dirname(__FILE__).'/lib/DomXmlPrinter.class.php');
 require_once(PHPCAS_PATH);
 
+if (!defined('SHOW_TIMERS_IN_OUTPUT'))
+	define('SHOW_TIMERS_IN_OUTPUT', false);
+if (!defined('SHOW_TIMERS'))
+	define('SHOW_TIMERS', false);
+if (!defined('DISPLAY_ERROR_BACKTRACE'))
+	define('DISPLAY_ERROR_BACKTRACE', false);
+
 try {
 	
 	if (defined('ADMIN_ACCESS') && isset($_GET['ADMIN_ACCESS']) && $_GET['ADMIN_ACCESS'] == ADMIN_ACCESS) {
@@ -128,12 +135,22 @@ try {
 		$xmlString = $printer->getOutput($results);
 		
 		apc_store($cacheKey, $xmlString, RESULT_CACHE_TTL);
+	}	
+	
+	if (SHOW_TIMERS) {
+		if (!isset($end))
+			$end = microtime();
+		list($sm, $ss) = explode(" ", $start);
+		list($em, $es) = explode(" ", $end);
+		$s = $ss + $sm;
+		$e = $es + $em;
+		@header('X-Runtime: '.($e-$s));
 	}
 	
 	@header('Content-Type: text/xml');
 	print $xmlString;
 		
-	if (SHOW_TIMERS) {
+	if (SHOW_TIMERS_IN_OUTPUT) {
 		$end2 = microtime();
 		
 		list($sm, $ss) = explode(" ", $start);
