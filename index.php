@@ -55,7 +55,7 @@ require_once(PHPCAS_PATH);
 
 try {
 	
-	if (defined('ADMIN_ACCESS') && $_GET['ADMIN_ACCESS'] && $_GET['ADMIN_ACCESS'] == ADMIN_ACCESS) {
+	if (defined('ADMIN_ACCESS') && isset($_GET['ADMIN_ACCESS']) && $_GET['ADMIN_ACCESS'] == ADMIN_ACCESS) {
 		// Skip authentication for admin scripts. 
 		// This may be useful for using the directory as a datasource for updater
 		// scripts.
