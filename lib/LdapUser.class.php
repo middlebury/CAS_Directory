@@ -45,8 +45,8 @@ class LdapUser {
 			throw new OperationFailedException("Cannot create a user without an Id. DN: ".$this->entryArray['dn']);
 		}
 		
-		$this->groups = array();
 		// If we are fetching group members, recursively fetch ancestor groups
+		$this->groups = array();
 		if (isset($this->entryArray['memberof'])) {
 			$numValues = intval($this->entryArray['memberof']['count']);
 			for ($i = 0; $i < $numValues; $i++) {

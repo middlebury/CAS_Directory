@@ -161,7 +161,7 @@ class LdapConnector {
 	}
 	
 	/**
-	 * Answer a single user by Id
+	 * Answer a single group by Id
 	 * 
 	 * @param array $args Must include a string 'id' value.
 	 * @return object LdapPerson
@@ -174,33 +174,7 @@ class LdapConnector {
 		
 		$id = $this->escapeDn($args['id']);
 		
-		
-		
-		$attributes = array_merge(	array($this->_config['GroupIdAttribute'], 'objectClass'), 	
-									array_keys($this->_config['GroupAttributes']));
-		if ($includeMembers)
-			$attributes[] = 'member';
-		
-		$result = ldap_search($this->_connection, $this->_config['GroupBaseDN'], 
-						"(".$this->_config['GroupIdAttribute']."=".$id.")", 
-						$attributes);
-						
-		if (ldap_errno($this->_connection))
-			throw new LDAPException("Read failed for ".$this->_config['GroupIdAttribute']." '$id' with message: ".ldap_error($this->_connection));
-		
-		$entries = ldap_get_entries($this->_connection, $result);
-		ldap_free_result($result);
-		
-		if (!intval($entries['count']))
-			throw new UnknownIdException("Could not find a group matching '$id' for ".$args['id'].".");
-		
-		if (intval($entries['count']) > 1)
-			throw new OperationFailedException("Found more than one group matching '$id'.");
-		
-		if ($includeMembers)
-			return new LdapGroup($this, $this->_config['GroupIdAttribute'], array_merge($this->_config['GroupAttributes'], array('member' => 'Members')), $entries[0]);
-		else
-			return new LdapGroup($this, $this->_config['GroupIdAttribute'], $this->_config['GroupAttributes'], $entries[0]);
+		return $this->getGroupByDN($id, true, $includeMembers);
 	}
 	
 	/**
@@ -212,7 +186,12 @@ class LdapConnector {
 	 * @since 3/25/09
 	 */
 	public function getGroupMembers ($args) {
-		$group = $this->getGroup($args, true);
+		if (!isset($args['id']))
+			throw new NullArgumentException('You must specify an id');
+		
+		$id = $this->escapeDn($args['id']);
+		
+		$group = $this->getGroupByDN($id, false, true);
 		
 		$memberDns = $group->getAttributeValues('Members');
 		if (!count($memberDns))
@@ -221,10 +200,10 @@ class LdapConnector {
 		$members = array();
 		foreach ($memberDns as $dn) {
 			try {
-				if (strpos($dn, $this->_config['GroupBaseDN']) !== FALSE)
-					$members[] = $this->getGroup(array('id' => $dn));
-				else if (strpos($dn, $this->_config['UserBaseDN']) !== FALSE)
-					$members[] = $this->getUserByDn($dn);
+				if ($this->isGroupDN($dn))
+					$members[] = $this->getGroupByDn($dn, false);
+				else if ($this->isUserDN($dn))
+					$members[] = $this->getUserByDn($dn, false);
 			} catch (OperationFailedException $e) {
 // 				print "<pre>".$e->getMessage()."</pre>";
 			}
@@ -368,6 +347,50 @@ class LdapConnector {
 	/*********************************************************
 	 * Action methods - End
 	 *********************************************************/
+	/**
+	 * Answer a single group by DN
+	 * 
+	 * @param string $id	A numeric string or integer
+	 * @return object LdapPerson
+	 * @access protected
+	 * @since 3/25/09
+	 */
+	protected function getGroupByDn ($dn, $includeGroupMembership = true, $includeMembers = false) {
+		$dn = $this->escapeDn($dn);
+		
+		$attributes = array($this->_config['GroupIdAttribute'], 'objectClass');
+		$attributes = array_merge($attributes, array_keys($this->_config['GroupAttributes']));
+		if ($includeMembers)
+			$attributes[] = 'member';
+		
+		if (!$includeGroupMembership) {
+			foreach ($attributes as $key => $val) {
+				if (strtolower($val) == 'memberof')
+					unset($attributes[$key]);
+			}
+		}
+		sort($attributes); // This line fixes an "Array initialization wrong" LDAP error.
+		
+		$result = ldap_read($this->_connection, $dn, "(objectclass=*)", 
+						$attributes);
+						
+		if (ldap_errno($this->_connection))
+			throw new LDAPException("Read failed for distinguishedName '$dn' with message: ".ldap_error($this->_connection));
+		
+		$entries = ldap_get_entries($this->_connection, $result);
+		ldap_free_result($result);
+		
+		if (!intval($entries['count']))
+			throw new UnknownIdException("Could not find a group matching '$dn'.");
+		
+		if (intval($entries['count']) > 1)
+			throw new OperationFailedException("Found more than one group matching '$dn'.");
+		
+		if ($includeMembers)
+			return new LdapGroup($this, $this->_config['GroupIdAttribute'], array_merge($this->_config['GroupAttributes'], array('member' => 'Members')), $entries[0]);
+		else
+			return new LdapGroup($this, $this->_config['GroupIdAttribute'], $this->_config['GroupAttributes'], $entries[0]);
+	}
 	
 	/**
 	 * Answer a single user by DN
@@ -377,12 +400,20 @@ class LdapConnector {
 	 * @access protected
 	 * @since 3/25/09
 	 */
-	protected function getUserByDn ($dn) {
+	protected function getUserByDn ($dn, $includeGroupMembership = true) {
 		$dn = $this->escapeDn($dn);
+		
+		$attributes = array_merge(array($this->_config['UserIdAttribute'], 'objectClass'), array_keys($this->_config['UserAttributes']));
+		if (!$includeGroupMembership) {
+			foreach ($attributes as $key => $val) {
+				if (strtolower($val) == 'memberof')
+					unset($attributes[$key]);
+			}
+		}
 		
 		$result = ldap_read($this->_connection, $dn, 
 						"(objectclass=*)", 
-						array_merge(array($this->_config['UserIdAttribute'], 'objectClass'), array_keys($this->_config['UserAttributes'])));
+						$attributes);
 						
 		if (ldap_errno($this->_connection))
 			throw new LDAPException("Read failed for distinguishedName '$dn' with message: ".ldap_error($this->_connection));
@@ -458,7 +489,7 @@ class LdapConnector {
 		return $dn;
 	}
 	
-	private $ancestorGroups = array();
+	private $groupAncestors = array();
 	/**
 	 * Answer an array of DNs for the ancestors of the group passed
 	 * 
@@ -468,7 +499,7 @@ class LdapConnector {
 	 * @since 6/24/09
 	 */
 	public function getGroupAncestorDNs ($groupDN) {
-		if (!isset($this->ancestorGroups[$groupDN])) {
+		if (!isset($this->groupAncestors[$groupDN])) {
 			$allGroups = array();
 			
 			if (!$this->_connection) {
@@ -498,9 +529,80 @@ class LdapConnector {
 				$allGroups = array_merge($allGroups, $this->getGroupAncestorDNs($entries[0]['memberof'][$i]));
 			}
 			
-			$this->ancestorGroups[$groupDN] = $allGroups;
+			$this->groupAncestors[$groupDN] = $allGroups;
 		}
-		return $this->ancestorGroups[$groupDN];
+		return $this->groupAncestors[$groupDN];
+	}
+	
+	private $groupDecendents = array();
+	/**
+	 * Answer an array of DNs for the decendents of the group passed
+	 * 
+	 * @param string $groupDN
+	 * @return array
+	 * @access public
+	 * @since 6/24/09
+	 */
+	public function getGroupDecendentDNs ($groupDN) {
+		if (!isset($this->groupDecendents[$groupDN])) {
+			$allGroups = array();
+			
+			if ($this->isGroupDN($groupDN)) {
+				if (!$this->_connection) {
+					throw new LdapException("No connection available");
+				}
+				
+				$result = ldap_read($this->_connection, $groupDN, "(objectclass=*)", array('member'));
+								
+				if (ldap_errno($this->_connection))
+					throw new LDAPException("Read failed for group distinguishedName '$groupDN' with message: ".ldap_error($this->_connection).".");
+				
+				$entries = ldap_get_entries($this->_connection, $result);
+				ldap_free_result($result);
+				
+				if (!intval($entries['count']))
+					throw new UnknownIdException("Could not find a group matching '$groupDN'.");
+				
+				if (intval($entries['count']) > 1)
+					throw new OperationFailedException("Found more than one group matching '$groupDN'.");
+				
+				if (!isset($entries[0]['member']))
+					return $allGroups;
+				
+				$numValues = intval($entries[0]['member']['count']);
+				for ($i = 0; $i < $numValues; $i++) {
+					$allGroups[] = $entries[0]['member'][$i];
+					$allGroups = array_merge($allGroups, $this->getGroupDecendentDNs($entries[0]['member'][$i]));
+				}
+			}
+			
+			$this->groupDecendents[$groupDN] = $allGroups;
+		}
+		return $this->groupDecendents[$groupDN];
+	}
+	
+	/**
+	 * Answer true if the dn passed is a group DN.
+	 * 
+	 * @param string $dn
+	 * @return boolean
+	 * @access public
+	 * @since 6/24/09
+	 */
+	public function isGroupDN ($dn) {
+		return (strpos($dn, $this->_config['GroupBaseDN']) !== FALSE);
+	}
+	
+	/**
+	 * Answer true if the dn passed is a user DN.
+	 * 
+	 * @param string $dn
+	 * @return boolean
+	 * @access public
+	 * @since 6/24/09
+	 */
+	public function isUserDN ($dn) {
+		return (strpos($dn, $this->_config['UserBaseDN']) !== FALSE);
 	}
 }
 
