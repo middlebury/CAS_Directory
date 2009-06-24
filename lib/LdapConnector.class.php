@@ -139,11 +139,11 @@ class LdapConnector {
 		if (!preg_match('/^[0-9A-F]+$/', $id))
 			throw new InvalidArgumentException("id '".$id."' is not valid format.");
 		
-		
+		$includeMembership = (isset($args['include_membership']) && strtolower($args['include_membership']) == 'true');
 		
 		$result = ldap_search($this->_connection, $this->_config['UserBaseDN'], 
 						"(".$this->_config['UserIdAttribute']."=".$id.")", 
-						array_merge(array($this->_config['UserIdAttribute'], 'objectClass'), array_keys($this->_config['UserAttributes'])));
+						$this->getUserAttributes($includeMembership));
 						
 		if (ldap_errno($this->_connection))
 			throw new LDAPException("Read failed for ".$this->_config['UserIdAttribute']." '$id' with message: ".ldap_error($this->_connection));
@@ -174,7 +174,9 @@ class LdapConnector {
 		
 		$id = $this->escapeDn($args['id']);
 		
-		return $this->getGroupByDN($id, true, $includeMembers);
+		$includeMembership = (isset($args['include_membership']) && strtolower($args['include_membership']) == 'true');
+		
+		return $this->getGroupByDN($id, $includeMembership, $includeMembers);
 	}
 	
 	/**
@@ -191,6 +193,8 @@ class LdapConnector {
 		
 		$id = $this->escapeDn($args['id']);
 		
+		$includeMembership = (isset($args['include_membership']) && strtolower($args['include_membership']) == 'true');
+		
 		$group = $this->getGroupByDN($id, false, true);
 		
 		$memberDns = $group->getAttributeValues('Members');
@@ -201,9 +205,9 @@ class LdapConnector {
 		foreach ($memberDns as $dn) {
 			try {
 				if ($this->isGroupDN($dn))
-					$members[] = $this->getGroupByDn($dn, false);
+					$members[] = $this->getGroupByDn($dn, $includeMembership);
 				else if ($this->isUserDN($dn))
-					$members[] = $this->getUserByDn($dn, false);
+					$members[] = $this->getUserByDn($dn, $includeMembership);
 			} catch (OperationFailedException $e) {
 // 				print "<pre>".$e->getMessage()."</pre>";
 			}
@@ -225,12 +229,13 @@ class LdapConnector {
 			throw new NullArgumentException('You must specify an query');
 		
 		$filter = $this->buildFilterFromQuery($args['query']);
-		
 // 		print $filter."\n";
+
+		$includeMembership = (isset($args['include_membership']) && strtolower($args['include_membership']) == 'true');
 		
 		$result = ldap_search($this->_connection, $this->_config['UserBaseDN'], 
 						$filter, 
-						array_merge(array($this->_config['UserIdAttribute'], 'objectClass'), array_keys($this->_config['UserAttributes'])));
+						$this->getUserAttributes($includeMembership));
 						
 		if (ldap_errno($this->_connection))
 			throw new LDAPException("Read failed for filter '$filter' with message: ".ldap_error($this->_connection));
@@ -283,12 +288,13 @@ class LdapConnector {
 			throw new NullArgumentException("No attributes specified for search");
 		
 		$filter = '(&'.implode('', $terms).')';
-		
 // 		print $filter."\n";
+
+		$includeMembership = (isset($args['include_membership']) && strtolower($args['include_membership']) == 'true');
 		
 		$result = ldap_search($this->_connection, $this->_config['UserBaseDN'], 
 						$filter, 
-						array_merge(array($this->_config['UserIdAttribute'], 'objectClass'), array_keys($this->_config['UserAttributes'])));
+						$this->getUserAttributes($includeMembership));
 						
 		if (ldap_errno($this->_connection))
 			throw new LDAPException("Read failed for filter '$filter' with message: ".ldap_error($this->_connection));
@@ -325,9 +331,11 @@ class LdapConnector {
 		
 // 		print $filter."\n";
 		
+		$includeMembership = (isset($args['include_membership']) && strtolower($args['include_membership']) == 'true');
+				
 		$result = ldap_search($this->_connection, $this->_config['GroupBaseDN'], 
 						$filter, 
-						array_merge(array($this->_config['GroupIdAttribute'], 'objectClass'), array_keys($this->_config['GroupAttributes'])));
+						$this->getGroupAttributes($includeMembership));
 						
 		if (ldap_errno($this->_connection))
 			throw new LDAPException("Read failed for filter '$filter' with message: ".ldap_error($this->_connection));
@@ -347,6 +355,59 @@ class LdapConnector {
 	/*********************************************************
 	 * Action methods - End
 	 *********************************************************/
+	 
+	/**
+	 * Answer an array of group attributes
+	 * 
+	 * @param boolean $includeMembership If true, group membership will be returned with each entry if available.
+	 * @param boolean $includeMembers If true, group member attributes will be returned.
+	 * @return array
+	 * @access public
+	 * @since 6/24/09
+	 */
+	public function getGroupAttributes ($includeMembership, $includeMembers = false) {
+		$attributes = array();
+		$attributes[] = $this->_config['GroupIdAttribute'];
+		$attributes[] = 'objectClass';
+		$attributes = array_merge($attributes, array_keys($this->_config['GroupAttributes']));
+		
+		if (!$includeMembership) {
+			foreach ($attributes as $key => $val) {
+				if (strtolower($val) == 'memberof')
+					unset($attributes[$key]);
+			}
+		}
+		
+		if ($includeMembers)
+			$attributes[] = 'member';
+		
+		return array_values($attributes); // This line fixes an "Array initialization wrong" LDAP error.
+	}
+	
+	/**
+	 * Answer an array of user attributes
+	 * 
+	 * @param boolean $includeMembership If true, group membership will be returned with each entry if available.
+	 * @return array
+	 * @access public
+	 * @since 6/24/09
+	 */
+	public function getUserAttributes ($includeMembership) {
+		$attributes = array();
+		$attributes[] = $this->_config['UserIdAttribute'];
+		$attributes[] = 'objectClass';
+		$attributes = array_merge($attributes, array_keys($this->_config['UserAttributes']));
+		
+		if (!$includeMembership) {
+			foreach ($attributes as $key => $val) {
+				if (strtolower($val) == 'memberof')
+					unset($attributes[$key]);
+			}
+		}
+		
+		return array_values($attributes); // This line fixes an "Array initialization wrong" LDAP error.
+	}
+	 
 	/**
 	 * Answer a single group by DN
 	 * 
@@ -355,24 +416,11 @@ class LdapConnector {
 	 * @access protected
 	 * @since 3/25/09
 	 */
-	protected function getGroupByDn ($dn, $includeGroupMembership = true, $includeMembers = false) {
+	protected function getGroupByDn ($dn, $includeMembership = true, $includeMembers = false) {
 		$dn = $this->escapeDn($dn);
 		
-		$attributes = array($this->_config['GroupIdAttribute'], 'objectClass');
-		$attributes = array_merge($attributes, array_keys($this->_config['GroupAttributes']));
-		if ($includeMembers)
-			$attributes[] = 'member';
-		
-		if (!$includeGroupMembership) {
-			foreach ($attributes as $key => $val) {
-				if (strtolower($val) == 'memberof')
-					unset($attributes[$key]);
-			}
-		}
-		sort($attributes); // This line fixes an "Array initialization wrong" LDAP error.
-		
 		$result = ldap_read($this->_connection, $dn, "(objectclass=*)", 
-						$attributes);
+						$this->getGroupAttributes($includeMembership, $includeMembers));
 						
 		if (ldap_errno($this->_connection))
 			throw new LDAPException("Read failed for distinguishedName '$dn' with message: ".ldap_error($this->_connection));
@@ -400,11 +448,11 @@ class LdapConnector {
 	 * @access protected
 	 * @since 3/25/09
 	 */
-	protected function getUserByDn ($dn, $includeGroupMembership = true) {
+	protected function getUserByDn ($dn, $includeMembership = true) {
 		$dn = $this->escapeDn($dn);
 		
 		$attributes = array_merge(array($this->_config['UserIdAttribute'], 'objectClass'), array_keys($this->_config['UserAttributes']));
-		if (!$includeGroupMembership) {
+		if (!$includeMembership) {
 			foreach ($attributes as $key => $val) {
 				if (strtolower($val) == 'memberof')
 					unset($attributes[$key]);
