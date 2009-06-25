@@ -4,7 +4,7 @@ define('CAS_HOST', 'login.middlebury.edu');
 define('CAS_PORT', 443);
 define('CAS_PATH', '/cas');
 
-define('PHPCAS_PATH', dirname(__FILE__).'/../phpcas/source/CAS.php');
+define('PHPCAS_PATH', dirname(__FILE__).'/phpcas/source/CAS.php');
 define('RESULT_CACHE_TTL', 6 * 60 * 60); // 6 Hours
 
 // define('ADMIN_ACCESS', 'sdfj239ug2jhg-01jLKJ');
@@ -42,6 +42,10 @@ $ldapConfig[0]['SingleTermOnlySearchAttributes']	= array(
 											'telephonNumber',
 											'sAMAccountName'
 											);
+
+$servicesDSN = 'mysql:dbname=cas;login.middlebury.edu';
+$servicesUser = 'testuser';
+$servicesPassword = 'testpassword';
 
 define('DISPLAY_ERROR_BACKTRACE', false);
 define('SHOW_TIMERS', false);
