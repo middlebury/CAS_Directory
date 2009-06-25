@@ -8,4 +8,19 @@ Date:		2009-04-06
 
 For documentation on this service, see:
 
-https://mediawiki.middlebury.edu/wiki/FEDi/CAS_Directory
+https://mediawiki.middlebury.edu/wiki/LIS/CAS_Directory
+
+== Installation ==
+1. Copy config.inc.php.sample to config.inc.php
+2. Change config options as appropriate.
+3. Make the index.php accessible on a websever.
+
+
+
+== Change-Log ==
+
+0.3.0
+	- Added support for returning only attributes specified in the CAS Services Management tool.
+	- Added an 'include_membership' parameter to all requests allowing applications that aren't
+	  interested in the group-membership of users to avoid wasting time fetching that data.
+	- Group membership requests now traverse AD groups to return parent groups.
