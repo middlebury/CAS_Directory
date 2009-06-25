@@ -4,7 +4,6 @@ define('CAS_HOST', 'login.middlebury.edu');
 define('CAS_PORT', 443);
 define('CAS_PATH', '/cas');
 
-define('PHPCAS_PATH', dirname(__FILE__).'/phpcas/source/CAS.php');
 define('RESULT_CACHE_TTL', 6 * 60 * 60); // 6 Hours
 
 // define('ADMIN_ACCESS', 'sdfj239ug2jhg-01jLKJ');

@@ -47,12 +47,12 @@ session_start();
 
 
 require_once(dirname(__FILE__).'/config.inc.php');
+require_once(dirname(__FILE__).'/lib/phpcas/source/CAS.php');
 require_once(dirname(__FILE__).'/lib/AntPath.php');
 require_once(dirname(__FILE__).'/lib/HarmoniException.class.php');
 require_once(dirname(__FILE__).'/lib/ErrorPrinter.class.php');
 require_once(dirname(__FILE__).'/lib/LdapConnector.class.php');
 require_once(dirname(__FILE__).'/lib/DomXmlPrinter.class.php');
-require_once(PHPCAS_PATH);
 
 if (!defined('SHOW_TIMERS_IN_OUTPUT'))
 	define('SHOW_TIMERS_IN_OUTPUT', false);
