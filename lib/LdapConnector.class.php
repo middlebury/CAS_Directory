@@ -285,7 +285,7 @@ class LdapConnector {
 		}
 		
 		if (!count($terms))
-			throw new NullArgumentException("No attributes specified for search");
+			throw new NullArgumentException("No attributes specified for search or not allowed to access attributes.");
 		
 		$filter = '(&'.implode('', $terms).')';
 // 		print $filter."\n";

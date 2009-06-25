@@ -47,6 +47,7 @@ session_start();
 
 
 require_once(dirname(__FILE__).'/config.inc.php');
+require_once(dirname(__FILE__).'/lib/AntPath.php');
 require_once(dirname(__FILE__).'/lib/HarmoniException.class.php');
 require_once(dirname(__FILE__).'/lib/ErrorPrinter.class.php');
 require_once(dirname(__FILE__).'/lib/LdapConnector.class.php');
@@ -72,7 +73,7 @@ try {
 		 * authentication fails.
 		 *********************************************************/
 		// set debug mode
-		phpCAS::setDebug();
+		phpCAS::setDebug('/tmp/phpCAS_directory.log');
 		
 		// initialize phpCAS
 		phpCAS::client(CAS_VERSION_2_0, CAS_HOST, CAS_PORT, CAS_PATH, false);
@@ -82,6 +83,17 @@ try {
 		
 		// force CAS authentication
 		phpCAS::forceAuthentication();
+		
+		
+		// If we are being proxied, limit the the attributes to those allowed to 
+		// be passed to the proxying application. As defined in the CAS Protocol
+		//   http://www.jasig.org/cas/protocol
+		// The first proxy listed is the most recent in the request chain. Limit
+		// to that services' allowed attributes.
+		$proxies = phpCAS::getProxies();
+		if (count($proxies)) {
+			$proxy = $proxies[0];
+		}
 	}
 	/*********************************************************
 	 * Parse/validate our arguments and run the specified action.
@@ -96,8 +108,67 @@ try {
 	foreach ($_GET as $key => $val) {
 		$cacheKey .= '&'.$key.'='.$val;
 	}
+	// Add our proxy to the cache-key in case we are limiting attributes based on it
+	if (isset($proxy)) {
+		$cacheKey .= ':'.$proxy;
+	}
+	
 	$xmlString = apc_fetch($cacheKey);
 	if ($xmlString === false) {
+	
+		// If we are being proxied, limit the the attributes to those allowed to 
+		// be passed to the proxying application. As defined in the CAS Protocol
+		//   http://www.jasig.org/cas/protocol
+		// The first proxy listed is the most recent in the request chain. Limit
+		// to that services' allowed attributes.
+		if (isset($proxy)) {
+			if (!isset($servicesDSN))
+				throw new Exception('No $servicesDSN specified.');
+			if (!isset($servicesUser))
+				throw new Exception('No $servicesUser specified.');
+			if (!isset($servicesPassword))
+				throw new Exception('No $servicesPassword specified.');
+			
+			$db = new PDO($servicesDSN, $servicesUser, $servicesPassword);
+			$db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+			
+			// Determin which service represents the proxying application.
+			$servicesQuery = 'SELECT id, serviceId FROM RegisteredServiceImpl WHERE allowedToProxy = 1 AND enabled = 1 AND ignoreAttributes = 0';
+			$parameterStrings = array();
+			$matchingServices = array();
+			foreach ($db->query($servicesQuery) as $row) {
+				$path = new AntPath($row['serviceId']);
+				if ($path->matches($proxy)) {
+					$parameterStrings[] = '?';
+					$matchingServices[] = $row['id'];
+				}
+			}
+			
+			// Fetch the list of allowed attributes.
+			if (count($matchingServices)) {
+				$attributeQuery = 'SELECT a_name FROM rs_attributes WHERE RegisteredServiceImpl_id IN ('.implode(', ', $parameterStrings).') GROUP BY a_name;';
+				$attributeStmt = $db->prepare($attributeQuery);
+				$attributeStmt->execute($matchingServices);
+				$allowedAttributes = $attributeStmt->fetchAll(PDO::FETCH_COLUMN);
+			} else {
+				$allowedAttributes = array();
+			}
+			
+			// Remove any disallowed attributes from the list
+			foreach ($ldapConfig as $i => $connectorConfig) {
+				foreach ($ldapConfig[$i]['UserAttributes'] as $ldapAttr => $casAttr) {
+					if (!in_array($casAttr, $allowedAttributes)) {
+// 						print "\nRemoving $ldapAttr => $casAttr\n";
+						unset($ldapConfig[$i]['UserAttributes'][$ldapAttr]);
+					}
+				}
+				foreach ($ldapConfig[$i]['GroupAttributes'] as $ldapAttr => $casAttr) {
+					if (!in_array($casAttr, $allowedAttributes)) {
+						unset($ldapConfig[$i]['GroupAttributes'][$ldapAttr]);
+					}
+				}
+			}
+		}
 	
 		$results = array();
 		foreach ($ldapConfig as $connectorConfig) {
