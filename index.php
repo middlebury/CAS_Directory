@@ -53,6 +53,7 @@ require_once(dirname(__FILE__).'/lib/HarmoniException.class.php');
 require_once(dirname(__FILE__).'/lib/ErrorPrinter.class.php');
 require_once(dirname(__FILE__).'/lib/LdapConnector.class.php');
 require_once(dirname(__FILE__).'/lib/DomXmlPrinter.class.php');
+require_once(dirname(__FILE__).'/lib/functions.php');
 
 if (!defined('SHOW_TIMERS_IN_OUTPUT'))
 	define('SHOW_TIMERS_IN_OUTPUT', false);
@@ -60,6 +61,10 @@ if (!defined('SHOW_TIMERS'))
 	define('SHOW_TIMERS', false);
 if (!defined('DISPLAY_ERROR_BACKTRACE'))
 	define('DISPLAY_ERROR_BACKTRACE', false);
+if (!defined('ALL_USERS_MEMORY_LIMIT'))
+	define('ALL_USERS_MEMORY_LIMIT', '300M');
+if (!defined('ALL_USERS_PAGE_SIZE'))
+	define('ALL_USERS_PAGE_SIZE', '100');
 
 try {
 	
@@ -169,34 +174,23 @@ try {
 				}
 			}
 		}
-	
-		$results = array();
-		foreach ($ldapConfig as $connectorConfig) {
-			$connector = new LdapConnector($connectorConfig);
-			$connector->connect();
-			 switch ($_GET['action']) {
-				case 'search_groups':
-					$results = array_merge($results, $connector->searchGroups($_GET));
-					break;
-				case 'search_users':
-					$results = array_merge($results, $connector->searchUsers($_GET));
-					break;
-				case 'search_users_by_attributes':
-					$results = array_merge($results, $connector->searchUsersByAttributes($_GET));
-					break;
-				case 'get_group':
-					$results = array_merge($results, array($connector->getGroup($_GET)));
-					break;
-				case 'get_user':
-					$results = array_merge($results, array($connector->getUser($_GET)));
-					break;
-				case 'get_group_members':
-					$results = array_merge($results, $connector->getGroupMembers($_GET));
-					break;
-				default:
-					throw new UnknownActionException('action, \''.$_GET['action'].'\' is not one of [search_users, search_groups, get_user, get_group].');
-			}
-			$connector->disconnect();
+		
+		// Paginate the results from the user list.
+		if ($_GET['action'] == 'get_all_users') {
+			$minBytes = return_bytes(ALL_USERS_MEMORY_LIMIT);
+			if (return_bytes(ini_get('memory_limit')) < $minBytes)
+				ini_set('memory_limit', $minBytes);	
+			
+			if (!isset($_GET['page']))
+				$page = 0;
+			else
+				$page = intval($_GET['page']);
+			
+			$results  = getAllUsersPageResults($ldapConfig, $page);
+		} 
+		// Normal case for most actions.
+		else {
+			$results = loadAllResults($ldapConfig);
 		}
 		
 		if (SHOW_TIMERS)
@@ -204,7 +198,6 @@ try {
 			
 		$printer = new DomXmlPrinter;
 		$xmlString = $printer->getOutput($results);
-		
 		apc_store($cacheKey, $xmlString, RESULT_CACHE_TTL);
 	}	
 	

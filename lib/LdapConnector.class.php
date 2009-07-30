@@ -217,6 +217,43 @@ class LdapConnector {
 	}
 	
 	/**
+	 * Answer an array of all users
+	 * 
+	 * @param array $args
+	 * @return array of LdapPerson objects
+	 * @access public
+	 * @since 4/2/09
+	 */
+	public function getAllUsers ($args) {		
+		$filter = '('.$this->_config['UserIdAttribute'].'=*)';
+
+		$includeMembership = (isset($args['include_membership']) && strtolower($args['include_membership']) == 'true');
+		
+		$result = ldap_search($this->_connection, $this->_config['UserBaseDN'], 
+						$filter, 
+						$this->getUserAttributes($includeMembership),
+						0);
+						
+		if (ldap_errno($this->_connection))
+			throw new LDAPException("Read failed for filter '$filter' with message: ".ldap_error($this->_connection));
+		
+		$entries = ldap_get_entries($this->_connection, $result);
+		ldap_free_result($result);
+		
+		$numEntries = intval($entries['count']);
+		$matches = array();
+		for ($i = 0; $i < $numEntries; $i++) {
+// 			print "\t".$entries[$i]['dn']."\n";
+			try {
+				$matches[] = new LdapUser($this, $this->_config['UserIdAttribute'], $this->_config['UserAttributes'], $entries[$i]);
+			} catch (OperationFailedException $e) {
+// 				print "<pre>".$e->getMessage()."</pre>";
+			}
+		}
+		return $matches;
+	}
+	
+	/**
 	 * Answer an array of users by search
 	 * 
 	 * @param array $args Must include a 'query' element.
