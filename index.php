@@ -67,6 +67,7 @@ if (!defined('ALL_USERS_PAGE_SIZE'))
 	define('ALL_USERS_PAGE_SIZE', '100');
 
 try {
+	$proxy = null;
 	
 	if (defined('ADMIN_ACCESS') && isset($_GET['ADMIN_ACCESS']) && $_GET['ADMIN_ACCESS'] == ADMIN_ACCESS) {
 		// Skip authentication for admin scripts. 
@@ -109,14 +110,8 @@ try {
 	if (SHOW_TIMERS)
 		$start = microtime();
 	
-	$cacheKey = $name.':';
-	foreach ($_GET as $key => $val) {
-		$cacheKey .= '&'.$key.'='.$val;
-	}
 	// Add our proxy to the cache-key in case we are limiting attributes based on it
-	if (isset($proxy)) {
-		$cacheKey .= ':'.$proxy;
-	}
+	$cacheKey = getCacheKey($_GET, $proxy);
 	
 	$xmlString = apc_fetch($cacheKey);
 	if ($xmlString === false) {
@@ -186,19 +181,20 @@ try {
 			else
 				$page = intval($_GET['page']);
 			
-			$results  = getAllUsersPageResults($ldapConfig, $page);
+			$xmlString  = getAllUsersPageXml($ldapConfig, $page, $proxy);
+			
+			if (SHOW_TIMERS)
+				$end = microtime();
 		} 
 		// Normal case for most actions.
 		else {
 			$results = loadAllResults($ldapConfig);
-		}
-		
-		if (SHOW_TIMERS)
-			$end = microtime();
 			
-		$printer = new DomXmlPrinter;
-		$xmlString = $printer->getOutput($results);
-		apc_store($cacheKey, $xmlString, RESULT_CACHE_TTL);
+			if (SHOW_TIMERS)
+				$end = microtime();
+			
+			$xmlString = getResultXml($results, $_GET, $proxy);
+		}
 	}	
 	
 	if (SHOW_TIMERS) {

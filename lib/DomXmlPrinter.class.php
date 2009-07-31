@@ -30,6 +30,19 @@ class DomXmlPrinter {
 		$this->doc->formatOutput = true;
 		
 		$this->doc->appendChild($this->doc->createElementNS('http://www.yale.edu/tp/cas', 'cas:results'));
+		
+		$this->doc->documentElement->setAttribute('morePagesAvailable', 'false');
+	}
+	
+	/**
+	 * Add a morePagesAvailable='true' attribute
+	 * 
+	 * @return void
+	 * @access public
+	 * @since 7/31/09
+	 */
+	public function morePagesAvailable () {
+		$this->doc->documentElement->setAttribute('morePagesAvailable', 'true');
 	}
 	
 	/**
