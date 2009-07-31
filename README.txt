@@ -18,6 +18,12 @@ https://mediawiki.middlebury.edu/wiki/LIS/CAS_Directory
 
 
 == Change-Log ==
+0.4.0
+	- Added support for a new 'get_all_users' action to allow user-accounts to be
+	  synced with remote systems.
+
+0.3.1
+	- Moved the PHPCAS path out of the config as it is now included as a submodule.
 
 0.3.0
 	- Added support for returning only attributes specified in the CAS Services Management tool.
