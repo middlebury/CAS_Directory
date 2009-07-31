@@ -181,6 +181,9 @@ try {
 			else
 				$page = intval($_GET['page']);
 			
+			if ($page < 0)
+				throw new InvalidArgumentException("'page' must be 0 or greater.");
+			
 			$xmlString  = getAllUsersPageXml($ldapConfig, $page, $proxy);
 			
 			if (SHOW_TIMERS)

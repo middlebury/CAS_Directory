@@ -93,7 +93,7 @@ function getAllUsersPageXml (array $ldapConfig, $page, $proxy = null) {
 	// Fetch the page from cache
 	$params = $_GET;
 	$params['page'] = $page;
-	$pageCacheKey = getCacheKey($params, $proxy, 'all_users');
+	$pageCacheKey = getCacheKey($params, $proxy);
 	
 	$allUsersString = apc_fetch($pageCacheKey);
 	
@@ -193,7 +193,7 @@ function getResultXml (array $results, array $params, $proxy = null, $hasMore = 
 	
 	$xmlString = $printer->getOutput($results);
 	
-	$pageCacheKey = getCacheKey($params, $proxy, 'all_users');
+	$pageCacheKey = getCacheKey($params, $proxy);
 	apc_store($pageCacheKey, $xmlString, RESULT_CACHE_TTL);
 	
 	return $xmlString;
