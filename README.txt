@@ -18,6 +18,9 @@ https://mediawiki.middlebury.edu/wiki/LIS/CAS_Directory
 
 
 == Change-Log ==
+0.4.1
+	- Added support for clearing the cache on notification from an external service.
+	
 0.4.0
 	- Added support for a new 'get_all_users' action to allow user-accounts to be
 	  synced with remote systems.

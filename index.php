@@ -69,10 +69,17 @@ if (!defined('ALL_USERS_PAGE_SIZE'))
 try {
 	$proxy = null;
 	
-	if (defined('ADMIN_ACCESS') && isset($_GET['ADMIN_ACCESS']) && $_GET['ADMIN_ACCESS'] == ADMIN_ACCESS) {
+	if (defined('ADMIN_ACCESS') && isset($_REQUEST['ADMIN_ACCESS']) && $_REQUEST['ADMIN_ACCESS'] == ADMIN_ACCESS) {
 		// Skip authentication for admin scripts. 
 		// This may be useful for using the directory as a datasource for updater
 		// scripts.
+		
+		// Allow clearing of the APC cache via a POST request with ADMIN_ACCESS
+		if (isset($_REQUEST['action']) && $_REQUEST['action'] == 'clear_cache') {
+			apc_clear_cache('user');
+			print "Cache Cleared";
+			exit;
+		}
 	} else {
 		/*********************************************************
 		 * Do proxy authentication and return an error state if
