@@ -582,13 +582,17 @@ class LdapConnector {
 	 */
 	protected function buildFilterFromQuery ($query) {
 		// Match a search string that might match a username, email address, first and/or last name.
-		if (!preg_match('/^[a-z0-9_,.\'&\s@-]+$/i', $query))
+		if (!preg_match('/^[a-z0-9_,.\'&\s@*-]+$/i', $query))
 			throw new InvalidArgumentException("query '$query' is not valid format.");
 		
 		if (strlen($query) < 2)
 			throw new InvalidArgumentException("query '$query' is too short. Please specify at least two characters.");
 		
 		$terms = explode(" ", $query);
+		// Trim off any surrounding wildcards as we will be adding them back in.
+		foreach ($terms as $key => $term) {
+			$terms[$key] = trim($term, '*');
+		}
 		
 		ob_start();
 		

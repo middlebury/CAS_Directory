@@ -18,6 +18,10 @@ https://mediawiki.middlebury.edu/wiki/LIS/CAS_Directory
 
 
 == Change-Log ==
+0.4.2
+	- Added support for returning children of OUs.
+	- Now does not duplicate wildcards included in the search string.
+	
 0.4.1
 	- Added support for clearing the cache on notification from an external service.
 	
