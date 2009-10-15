@@ -18,6 +18,9 @@ https://mediawiki.middlebury.edu/wiki/LIS/CAS_Directory
 
 
 == Change-Log ==
+0.4.3
+	- Can now be configured with multiple group base DNs for search.
+	  Fixes issue: http://chisel.middlebury.edu/pool/show_bug.cgi?id=299
 0.4.2
 	- Added support for returning children of OUs.
 	- Now does not duplicate wildcards included in the search string.

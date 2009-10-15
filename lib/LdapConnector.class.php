@@ -58,8 +58,19 @@ class LdapConnector {
 		
 		if (!isset($config['UserBaseDN']) || !strlen($config['UserBaseDN']))
 			throw new ConfigurationErrorException("Missing UserBaseDN configuration");
-		if (!isset($config['GroupBaseDN']) || !strlen($config['GroupBaseDN']))
+		
+		if (!isset($config['GroupBaseDN']))
 			throw new ConfigurationErrorException("Missing GroupBaseDN configuration");
+		if (is_string($config['GroupBaseDN']) && strlen($config['GroupBaseDN'])) 
+			$config['GroupBaseDNs'] = array($config['GroupBaseDN']);
+		else if (is_array($config['GroupBaseDN']) && count($config['GroupBaseDN']))
+			$config['GroupBaseDNs'] =  $config['GroupBaseDN'];
+		else {
+			ob_start();
+			var_dump($config['GroupBaseDN']);
+			throw new ConfigurationErrorException("Expected GroupBaseDN to be a string or array, found ".ob_get_clean()."");
+		}
+			
 		
 		if (!isset($config['UserIdAttribute']) || !strlen($config['UserIdAttribute']))
 			throw new ConfigurationErrorException("Missing UserIdAttribute configuration");
@@ -377,22 +388,25 @@ class LdapConnector {
 // 		print $filter."\n";
 		
 		$includeMembership = (isset($args['include_membership']) && strtolower($args['include_membership']) == 'true');
-				
-		$result = ldap_search($this->_connection, $this->_config['GroupBaseDN'], 
-						$filter, 
-						$this->getGroupAttributes($includeMembership));
-						
-		if (ldap_errno($this->_connection))
-			throw new LDAPException("Read failed for filter '$filter' with message: ".ldap_error($this->_connection));
 		
-		$entries = ldap_get_entries($this->_connection, $result);
-		ldap_free_result($result);
-		
-		$numEntries = intval($entries['count']);
+		$entries = array();
+		foreach ($this->_config['GroupBaseDNs'] as $groupBase) {
+			$result = ldap_search($this->_connection, $groupBase, 
+							$filter, 
+							$this->getGroupAttributes($includeMembership));
+							
+			if (ldap_errno($this->_connection))
+				throw new LDAPException("Read failed for filter '$filter' with message: ".ldap_error($this->_connection));
+			
+			$currentEntries = ldap_get_entries($this->_connection, $result);
+			unset($currentEntries['count']);
+			$entries = array_merge($entries, $currentEntries);
+			ldap_free_result($result);
+		}
 		$matches = array();
-		for ($i = 0; $i < $numEntries; $i++) {
-// 			print "\t".$entries[$i]['dn']."\n";
-			$matches[] = new LdapGroup($this, $this->_config['GroupIdAttribute'], $this->_config['GroupAttributes'], $entries[$i]);
+		foreach ($entries as $entry) {
+// 			var_dump($entry);
+			$matches[] = new LdapGroup($this, $this->_config['GroupIdAttribute'], $this->_config['GroupAttributes'], $entry);
 		}
 		return $matches;
 	}
@@ -736,7 +750,11 @@ class LdapConnector {
 	 * @since 6/24/09
 	 */
 	public function isGroupDN ($dn) {
-		return (strpos($dn, $this->_config['GroupBaseDN']) !== FALSE);
+		foreach ($this->_config['GroupBaseDNs'] as $groupBase) {
+			if (strpos($dn, $groupBase) !== FALSE)
+				return true;
+		}
+		return false;
 	}
 	
 	/**

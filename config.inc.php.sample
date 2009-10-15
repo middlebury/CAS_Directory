@@ -18,7 +18,10 @@ $ldapConfig[0]['BindDN']				= 'view_only_admin_user';
 $ldapConfig[0]['BindDNPassword']		= 'password';
 $ldapConfig[0]['BaseDN']				= 'DC=middlebury,DC=edu';
 $ldapConfig[0]['UserBaseDN']			= 'DC=middlebury,DC=edu';
-$ldapConfig[0]['GroupBaseDN']			= 'OU=Groups,DC=middlebury,DC=edu';
+$ldapConfig[0]['GroupBaseDN']			= array(
+											'OU=Groups,DC=middlebury,DC=edu',
+											'OU=web data,DC=middlebury,DC=edu'
+										);
 $ldapConfig[0]['UserIdAttribute']		= 'MiddID';
 $ldapConfig[0]['GroupIdAttribute']		= 'distinguishedName';
 $ldapConfig[0]['UserAttributes'] 		= array(
