@@ -660,6 +660,7 @@ class LdapConnector {
 	 */
 	public function getGroupAncestorDNs ($groupDN) {
 		if (!isset($this->groupAncestors[$groupDN])) {
+			$this->groupAncestors[$groupDN] = array();
 			$allGroups = array();
 			
 			if (!$this->_connection) {
