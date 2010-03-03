@@ -390,7 +390,28 @@ class LdapConnector {
 		$includeMembership = (isset($args['include_membership']) && strtolower($args['include_membership']) == 'true');
 		
 		$entries = array();
-		foreach ($this->_config['GroupBaseDNs'] as $groupBase) {
+		
+		if (isset($args['base']) && strlen(trim($args['base']))) {
+			$base = trim($args['base']);
+			
+			// Verify that the base is within on of our group bases.
+			$within = false;
+			foreach ($this->_config['GroupBaseDNs'] as $groupBase) {
+				$groupBaseStart = strrpos($base, $groupBase);
+				if ($groupBaseStart !== false && (strlen($base) - strlen($groupBase)) == $groupBaseStart) {
+					$within = true;
+					break;
+				}
+			}
+			if (!$within)
+				throw new InvalidArgumentException("$base is not within the group-base.");
+			
+			$groupBases = array($base);
+		} else {
+			$groupBases = $this->_config['GroupBaseDNs'];
+		}
+		
+		foreach ($groupBases as $groupBase) {
 			$result = ldap_search($this->_connection, $groupBase, 
 							$filter, 
 							$this->getGroupAttributes($includeMembership));
