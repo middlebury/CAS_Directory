@@ -222,7 +222,10 @@ class LdapConnector {
 				} catch (OperationFailedException $e) {
 	// 				print "<pre>".$e->getMessage()."</pre>";
 				}
-				
+				// For now, just skip users/groups who's dns include invalid characters.
+				catch (InvalidArgumentException $e) {
+					trigger_error($e->getMessage(), E_USER_WARNING);
+				}
 			}
 		}
 		// For Organizational uinits, use the groups it contains.
