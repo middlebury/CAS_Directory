@@ -147,7 +147,7 @@ class LdapConnector {
 		$id = $args['id'];
 		
 		// Match a numeric ID
-		if (!preg_match('/^[0-9A-F]+$/', $id))
+		if (!preg_match('/^[0-9A-Z_-]+$/i', $id))
 			throw new InvalidArgumentException("id '".$id."' is not valid format.");
 		
 		$includeMembership = (isset($args['include_membership']) && strtolower($args['include_membership']) == 'true');
