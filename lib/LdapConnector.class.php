@@ -665,7 +665,7 @@ class LdapConnector {
 	 */
 	protected function escapeDn ($dn) {
 		$dn = strval($dn);
-		if (!preg_match('/^[a-z0-9_=\\\,.\'&\s()* \p{L} -]+$/ui', $dn))
+		if (!preg_match('/^[a-z0-9_=\\\,.\'&\s()* \p{L} -\/]+$/ui', $dn))
 			throw new InvalidArgumentException("dn '".$dn."' is not valid format.");
 		
 		// @todo - Escape needed control characters.
