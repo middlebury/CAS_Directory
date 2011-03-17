@@ -793,6 +793,34 @@ class LdapConnector {
 	public function isUserDN ($dn) {
 		return (strpos($dn, $this->_config['UserBaseDN']) !== FALSE);
 	}
+	
+	/**
+	 * Answer an attribute array for a dn.
+	 * 
+	 * @param string $dn	The DN to query.
+	 * @param array $attributes The attributes to return.
+	 * @return array
+	 */
+	public function read ($dn, array $attributes) {
+		$dn = $this->escapeDn($dn);
+		
+		// Suppress errors since we will check them in the next statement and throw an exception.
+		$result = @ldap_read($this->_connection, $dn, "(objectclass=*)", $attributes);
+						
+		if (ldap_errno($this->_connection))
+			throw new LDAPException("Read failed for distinguishedName '$dn' with message: ".ldap_error($this->_connection));
+		
+		$entries = ldap_get_entries($this->_connection, $result);
+		ldap_free_result($result);
+		
+		if (!intval($entries['count']))
+			throw new UnknownIdException("Could not find a entry matching '$dn'.");
+		
+		if (intval($entries['count']) > 1)
+			throw new OperationFailedException("Found more than one entry matching '$dn'.");
+		
+		return $entries[0];
+	}
 }
 
 /**
