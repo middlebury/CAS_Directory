@@ -244,7 +244,7 @@ class ErrorPrinter {
 			<p>$message</p>
 		</blockquote>
 		<p>$logMessage</p>
-		<p>Usage Documentation: <a href='https://mediawiki.middlebury.edu/wiki/FEDi/CAS_Directory'>https://mediawiki.middlebury.edu/wiki/FEDi/CAS_Directory</a></p>
+		<p>Usage Documentation: <a href='https://mediawiki.middlebury.edu/wiki/LIS/CAS_Directory'>https://mediawiki.middlebury.edu/wiki/LIS/CAS_Directory</a></p>
 		$additionalHtml
 	</body>
 </html>
