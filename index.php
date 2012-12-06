@@ -65,6 +65,10 @@ if (!defined('ALL_USERS_MEMORY_LIMIT'))
 	define('ALL_USERS_MEMORY_LIMIT', '300M');
 if (!defined('ALL_USERS_PAGE_SIZE'))
 	define('ALL_USERS_PAGE_SIZE', '100');
+if (!defined('ALLOW_CAS_AUTHENTICATION'))
+	define('ALLOW_CAS_AUTHENTICATION', false);
+if (!defined('ALLOW_DIRECT_CAS_AUTHENTICATION'))
+	define('ALLOW_DIRECT_CAS_AUTHENTICATION', false);
 
 try {
 	$proxy = null;
@@ -80,7 +84,7 @@ try {
 			print "Cache Cleared";
 			exit;
 		}
-	} else {
+	} else if (ALLOW_CAS_AUTHENTICATION) {
 		/*********************************************************
 		 * Do proxy authentication and return an error state if
 		 * authentication fails.
@@ -106,7 +110,13 @@ try {
 		$proxies = phpCAS::getProxies();
 		if (count($proxies)) {
 			$proxy = $proxies[0];
+		} else {
+			// If we not are allowing users to directly authenticate and use the service exit
+			if (!ALLOW_DIRECT_CAS_AUTHENTICATION)
+				throw new PermissionDeniedException("Direct access to this service is not allowed.");
 		}
+	} else {
+		throw new PermissionDeniedException("No access key passed. Access denied.");
 	}
 	/*********************************************************
 	 * Parse/validate our arguments and run the specified action.

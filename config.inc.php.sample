@@ -6,7 +6,18 @@ define('CAS_PATH', '/cas');
 
 define('RESULT_CACHE_TTL', 6 * 60 * 60); // 6 Hours
 
-// define('ADMIN_ACCESS', 'sdfj239ug2jhg-01jLKJ');
+// Configure authentication for this service.
+// Most implementation will only need to define the ADMIN_ACCESS key.
+//define('ADMIN_ACCESS', 'sdfj239ug2jhg-01jLKJ');
+
+// If you set ALLOW_CAS_AUTHENTICATION to true, then applications which are allowed
+// to proxy by the CAS server will be able to authenticate on behalf of a user
+// via proxy authentication.
+//define('ALLOW_CAS_AUTHENTICATION', true);
+
+// If you set ALLOW_DIRECT_CAS_AUTHENTICATION users can directly access this service.
+// Note, this will expose directory information to users.
+//define('ALLOW_DIRECT_CAS_AUTHENTICATION', true);
 
 $ldapConfig = array();
 
