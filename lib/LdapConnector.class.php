@@ -63,7 +63,7 @@ class LdapConnector {
 			throw new ConfigurationErrorException("Missing GroupBaseDN configuration");
 		if (is_string($config['GroupBaseDN']) && strlen($config['GroupBaseDN'])) 
 			$config['GroupBaseDNs'] = array($config['GroupBaseDN']);
-		else if (is_array($config['GroupBaseDN']) && count($config['GroupBaseDN']))
+		else if (is_array($config['GroupBaseDN']))
 			$config['GroupBaseDNs'] =  $config['GroupBaseDN'];
 		else {
 			ob_start();
