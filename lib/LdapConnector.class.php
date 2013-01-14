@@ -555,7 +555,7 @@ class LdapConnector {
 						$this->getGroupAttributes($includeMembership, $includeMembers));
 						
 		if (ldap_errno($this->_connection))
-			throw new LDAPException("Read failed for distinguishedName '$dn' with message: ".ldap_error($this->_connection));
+			throw new LDAPException("Read failed for distinguishedName '$dn' with message: ".ldap_error($this->_connection), ldap_errno($this->_connection));
 		
 		$entries = ldap_get_entries($this->_connection, $result);
 		ldap_free_result($result);

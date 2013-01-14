@@ -21,38 +21,48 @@ function loadAllResults (array $ldapConfig) {
 		$connector = new LdapConnector($connectorConfig);
 		$connector->connect();
 		$error  = '';
-		 switch ($_GET['action']) {
-			case 'search_groups':
-				$results = array_merge($results, $connector->searchGroups($_GET));
-				break;
-			case 'search_users':
-				$results = array_merge($results, $connector->searchUsers($_GET));
-				break;
-			case 'search_users_by_attributes':
-				$results = array_merge($results, $connector->searchUsersByAttributes($_GET));
-				break;
-			case 'get_group':
-				try {
-					$results = array_merge($results, array($connector->getGroup($_GET)));
-				} catch (UnknownIdException $e) {
-					$error = $e->getMessage();
-				}
-				break;
-			case 'get_user':
-				try {
-					$results = array_merge($results, array($connector->getUser($_GET)));
-				} catch (UnknownIdException $e) {
-					$error = $e->getMessage();
-				}
-				break;
-			case 'get_group_members':
-				$results = array_merge($results, $connector->getGroupMembers($_GET));
-				break;
-			case 'get_all_users':
-				$results = array_merge($results, $connector->getAllUsers($_GET));
-				break;
-			default:
-				throw new UnknownActionException('action, \''.$_GET['action'].'\' is not one of [search_users, search_groups, get_user, get_group].');
+		
+		try {
+			switch ($_GET['action']) {
+				case 'search_groups':
+					$results = array_merge($results, $connector->searchGroups($_GET));
+					break;
+				case 'search_users':
+					$results = array_merge($results, $connector->searchUsers($_GET));
+					break;
+				case 'search_users_by_attributes':
+					$results = array_merge($results, $connector->searchUsersByAttributes($_GET));
+					break;
+				case 'get_group':
+					try {
+						$results = array_merge($results, array($connector->getGroup($_GET)));
+					} catch (UnknownIdException $e) {
+						$error = $e->getMessage();
+					}
+					break;
+				case 'get_user':
+					try {
+						$results = array_merge($results, array($connector->getUser($_GET)));
+					} catch (UnknownIdException $e) {
+						$error = $e->getMessage();
+					}
+					break;
+				case 'get_group_members':
+					try {
+						$results = array_merge($results, $connector->getGroupMembers($_GET));
+					} catch (UnknownIdException $e) {
+						$error = $e->getMessage();
+					}
+					break;
+				case 'get_all_users':
+					$results = array_merge($results, $connector->getAllUsers($_GET));
+					break;
+				default:
+					throw new UnknownActionException('action, \''.$_GET['action'].'\' is not one of [search_users, search_groups, get_user, get_group].');
+			}
+		} catch (LDAPException $e) {
+			if ($e->getCode() != 10) // 10 = LDAP_REFERRAL 
+				throw $e;
 		}
 		$connector->disconnect();
 	}
