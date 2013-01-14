@@ -20,6 +20,7 @@ function loadAllResults (array $ldapConfig) {
 	foreach ($ldapConfig as $connectorConfig) {
 		$connector = new LdapConnector($connectorConfig);
 		$connector->connect();
+		$error  = '';
 		 switch ($_GET['action']) {
 			case 'search_groups':
 				$results = array_merge($results, $connector->searchGroups($_GET));
@@ -31,10 +32,18 @@ function loadAllResults (array $ldapConfig) {
 				$results = array_merge($results, $connector->searchUsersByAttributes($_GET));
 				break;
 			case 'get_group':
-				$results = array_merge($results, array($connector->getGroup($_GET)));
+				try {
+					$results = array_merge($results, array($connector->getGroup($_GET)));
+				} catch (UnknownIdException $e) {
+					$error = $e->getMessage();
+				}
 				break;
 			case 'get_user':
-				$results = array_merge($results, array($connector->getUser($_GET)));
+				try {
+					$results = array_merge($results, array($connector->getUser($_GET)));
+				} catch (UnknownIdException $e) {
+					$error = $e->getMessage();
+				}
 				break;
 			case 'get_group_members':
 				$results = array_merge($results, $connector->getGroupMembers($_GET));
@@ -46,6 +55,14 @@ function loadAllResults (array $ldapConfig) {
 				throw new UnknownActionException('action, \''.$_GET['action'].'\' is not one of [search_users, search_groups, get_user, get_group].');
 		}
 		$connector->disconnect();
+	}
+	
+	switch ($_GET['action']) {
+		case 'get_group':
+		case 'get_user':
+			if (empty($results)) {
+				throw new UnknownIdException($error);
+			}
 	}
 	return $results;
 }
