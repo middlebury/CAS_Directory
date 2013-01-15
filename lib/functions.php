@@ -31,7 +31,11 @@ function loadAllResults (array $ldapConfig) {
 					$results = array_merge($results, $connector->searchUsers($_GET));
 					break;
 				case 'search_users_by_attributes':
-					$results = array_merge($results, $connector->searchUsersByAttributes($_GET));
+					try {
+						$results = array_merge($results, $connector->searchUsersByAttributes($_GET));
+					} catch (NullArgumentException $e) {
+						$error = $e->getMessage();
+					}
 					break;
 				case 'get_group':
 					try {
@@ -73,6 +77,12 @@ function loadAllResults (array $ldapConfig) {
 			if (empty($results)) {
 				throw new UnknownIdException($error);
 			}
+			break;
+		case 'search_users_by_attributes':
+			if (empty($results) && strlen($error)) {
+				throw new Exception($error);
+			}
+			break;
 	}
 	return $results;
 }
