@@ -79,9 +79,6 @@ function loadAllResults (array $ldapConfig) {
 			}
 			break;
 		case 'search_users_by_attributes':
-			if (empty($results) && strlen($error)) {
-				throw new Exception($error);
-			}
 			break;
 	}
 	return $results;
