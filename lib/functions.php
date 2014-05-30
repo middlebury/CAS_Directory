@@ -31,6 +31,13 @@ function loadAllResults (array $ldapConfig) {
 						$error = $e->getMessage();
 					}
 					break;
+				case 'search_groups_by_attributes':
+					try {
+						$results = array_merge($results, $connector->searchGroupsByAttributes($_GET));
+					} catch (NullArgumentException $e) {
+						$error = $e->getMessage();
+					}
+					break;
 				case 'search_users':
 					$results = array_merge($results, $connector->searchUsers($_GET));
 					break;

@@ -436,6 +436,94 @@ class LdapConnector {
 	}
 	
 	/**
+	 * Answer an array of groups by search
+	 * 
+	 * @param array $args Must include a 'query' element.
+	 * @return array of LdapPerson objects
+	 * @access public
+	 * @since 4/2/09
+	 */
+	public function searchGroupsByAttributes ($args) {
+		if (isset($args['strict']) && strtolower($args['strict']) == 'false')
+			$strict = false;
+		else
+			$strict = true;
+		$terms = array();
+		foreach ($args as $key => $val) {
+			$useNot = false;
+			if (preg_match('/^(.+)!$/', $key, $key_matches)) {
+				$useNot = true;
+				$key = $key_matches[1];
+			}
+			$ldapKey = array_search($key, $this->_config['GroupAttributes']);
+			if ($ldapKey !== FALSE) {
+				// Match a search string that might match a username, email address, first and/or last name.
+				if (!preg_match('/^[a-z0-9_,.\'&\s*@-]+$/i', $val))
+					throw new InvalidArgumentException("Attribute '$val' is not valid format.");
+				if ($strict)
+					$term = '('.$ldapKey.'='.$val.')';
+				else
+					$term = '('.$ldapKey.'=*'.$val.'*)';
+				
+				if ($useNot)
+					$term = '(!'.$term.')';
+				
+				$terms[] = $term;
+			}
+		}
+		
+		if (!count($terms))
+			throw new NullArgumentException("No attributes specified for search or not allowed to access attributes.");
+		
+		$filter = '(&'.implode('', $terms).')';
+		print $filter."\n";
+
+		$includeMembership = (isset($args['include_membership']) && strtolower($args['include_membership']) == 'true');
+		
+		$entries = array();
+		
+		if (isset($args['base']) && strlen(trim($args['base']))) {
+			$base = trim($args['base']);
+			
+			// Verify that the base is within on of our group bases.
+			$within = false;
+			foreach ($this->_config['GroupBaseDNs'] as $groupBase) {
+				$groupBaseStart = strrpos($base, $groupBase);
+				if ($groupBaseStart !== false && (strlen($base) - strlen($groupBase)) == $groupBaseStart) {
+					$within = true;
+					break;
+				}
+			}
+			if (!$within)
+				throw new InvalidArgumentException("$base is not within the group-base.");
+			
+			$groupBases = array($base);
+		} else {
+			$groupBases = $this->_config['GroupBaseDNs'];
+		}
+		
+		foreach ($groupBases as $groupBase) {
+			$result = ldap_search($this->_connection, $groupBase, 
+							$filter, 
+							$this->getGroupAttributes($includeMembership));
+							
+			if (ldap_errno($this->_connection))
+				throw new LDAPException("Read failed on ".$this->_config['LDAPHost']." under ".$this->_config['GroupBaseDN']." for filter '$filter' with message: ".ldap_error($this->_connection));
+			
+			$currentEntries = ldap_get_entries($this->_connection, $result);
+			unset($currentEntries['count']);
+			$entries = array_merge($entries, $currentEntries);
+			ldap_free_result($result);
+		}
+		$matches = array();
+		foreach ($entries as $entry) {
+// 			var_dump($entry);
+			$matches[] = new LdapGroup($this, $this->_config['GroupIdAttribute'], $this->_config['GroupAttributes'], $entry);
+		}
+		return $matches;
+	}
+	
+	/**
 	 * List the contents of elements below a dn
 	 *
 	 * @param string $query
