@@ -25,7 +25,11 @@ function loadAllResults (array $ldapConfig) {
 		try {
 			switch ($_GET['action']) {
 				case 'search_groups':
-					$results = array_merge($results, $connector->searchGroups($_GET));
+					try {
+						$results = array_merge($results, $connector->searchGroups($_GET));
+					} catch (InvalidArgumentException $e) {
+						$error = $e->getMessage();
+					}
 					break;
 				case 'search_users':
 					$results = array_merge($results, $connector->searchUsers($_GET));
