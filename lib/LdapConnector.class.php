@@ -331,15 +331,25 @@ class LdapConnector {
 		
 		$terms = array();
 		foreach ($args as $key => $val) {
+			$useNot = false;
+			if (preg_match('/^(.+)!$/', $key, $key_matches)) {
+				$useNot = true;
+				$key = $key_matches[1];
+			}
 			$ldapKey = array_search($key, $this->_config['UserAttributes']);
 			if ($ldapKey !== FALSE) {
 				// Match a search string that might match a username, email address, first and/or last name.
 				if (!preg_match('/^[a-z0-9_,.\'&\s@-]+$/i', $val))
 					throw new InvalidArgumentException("Attribute '$val' is not valid format.");
 				if ($strict)
-					$terms[] = '('.$ldapKey.'='.$val.')';
+					$term = '('.$ldapKey.'='.$val.')';
 				else
-					$terms[] = '('.$ldapKey.'=*'.$val.'*)';
+					$term = '('.$ldapKey.'=*'.$val.'*)';
+				
+				if ($useNot)
+					$term = '(!'.$term.')';
+				
+				$terms[] = $term;
 			}
 		}
 		
