@@ -486,7 +486,7 @@ class LdapConnector {
 			throw new NullArgumentException("No attributes specified for search or not allowed to access attributes.");
 		
 		$filter = '(&'.implode('', $terms).')';
-		print $filter."\n";
+//		print $filter."\n";
 
 		$includeMembership = (isset($args['include_membership']) && strtolower($args['include_membership']) == 'true');
 		
