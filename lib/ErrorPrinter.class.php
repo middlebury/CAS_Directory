@@ -184,7 +184,10 @@ class ErrorPrinter {
 	private function printException (Exception $e, $code, $additionalHtml = '') {
 		// Debugging mode for development, rethrow the exception
 		if (defined('DISPLAY_ERROR_BACKTRACE') && DISPLAY_ERROR_BACKTRACE) {
-			throw $e;
+			print "\n<div class='exception' style='background-color: #FAA; padding: 5px;'>";
+			print "\n<h4>".get_class($e).": ".$e->getMessage()." in ".$e->getFile()." on line ".$e->getLine()."</h4>";
+			print "\n<pre>".$e->getTraceAsString()."</pre>";
+			print "\n</div>\n";
 		} 
 		
 		// Normal production case
