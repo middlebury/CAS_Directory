@@ -19,6 +19,9 @@ define('RESULT_CACHE_TTL', 6 * 60 * 60); // 6 Hours
 // Note, this will expose directory information to users.
 //define('ALLOW_DIRECT_CAS_AUTHENTICATION', true);
 
+// File to write phpCAS debugging information
+//define('PHPCAS_DEBUG_FILE', '/tmp/directory-phpcas.log');
+
 $ldapConfig = array();
 
 // Configure the first LDAP Server.

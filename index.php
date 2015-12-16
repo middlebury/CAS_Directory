@@ -90,7 +90,12 @@ try {
 		 * authentication fails.
 		 *********************************************************/
 		// set debug mode
-		phpCAS::setDebug('/tmp/phpCAS_directory.log');
+		if (defined('PHPCAS_DEBUG_FILE')) {
+			if (PHPCAS_DEBUG_FILE) {
+				phpCAS::setDebug(PHPCAS_DEBUG_FILE);
+			}
+		}
+
 
 		// initialize phpCAS
 		phpCAS::client(CAS_VERSION_2_0, CAS_HOST, CAS_PORT, CAS_PATH, false);
