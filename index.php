@@ -140,6 +140,30 @@ try {
 		throw new PermissionDeniedException("No access key passed. Access denied.");
 	}
 
+	// Check group authorization if we are authenticated via CAS.
+	if (phpCAS::isAuthenticated()) {
+		if (empty($cas_allowed_groups) || !is_array($cas_allowed_groups)) {
+			throw new PermissionDeniedException("No groups are configured to access this service. Please contact an administrator if you believe this is incorrect.");
+		} else {
+			if (!defined('CAS_MEMBER_OF_ATTRIBUTE')) {
+				throw new Exception('CAS_MEMBER_OF_ATTRIBUTE must be defined in the application configuration.');
+			}
+			$allowed = false;
+			$user_groups = phpCAS::getAttribute(CAS_MEMBER_OF_ATTRIBUTE);
+			if (!empty($user_groups)) {
+				// Single-value case.
+				if (!is_array($user_groups)) {
+					$user_groups = array($user_groups);
+				}
+				$intersection = array_intersect($cas_allowed_groups, $user_groups);
+				$allowed = (count($intersection) > 0);
+			}
+			if (!$allowed) {
+				throw new PermissionDeniedException("You are not a member of a group granted to access this service. Please contact an administrator if you believe this is incorrect.");
+			}
+		}
+	}
+
 	/*********************************************************
 	 * Parse/validate our arguments and run the specified action.
 	 *********************************************************/
