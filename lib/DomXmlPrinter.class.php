@@ -2,25 +2,25 @@
 /**
  * @since 3/30/09
  * @package directory
- * 
+ *
  * @copyright Copyright &copy; 2009, Middlebury College
  * @license http://www.gnu.org/copyleft/gpl.html GNU General Public License (GPL)
- */ 
+ */
 
 /**
  * A printer for generating the appropriate XML output.
- * 
+ *
  * @since 3/30/09
  * @package directory
- * 
+ *
  * @copyright Copyright &copy; 2009, Middlebury College
  * @license http://www.gnu.org/copyleft/gpl.html GNU General Public License (GPL)
  */
 class DomXmlPrinter {
-	
+
 	/**
 	 * Constructor
-	 * 
+	 *
 	 * @return void
 	 * @access public
 	 * @since 3/30/09
@@ -28,15 +28,15 @@ class DomXmlPrinter {
 	public function __construct () {
 		$this->doc = new DOMDocument ('1.0', 'utf-8');
 		$this->doc->formatOutput = true;
-		
+
 		$this->doc->appendChild($this->doc->createElementNS('http://www.yale.edu/tp/cas', 'cas:results'));
-		
+
 		$this->doc->documentElement->setAttribute('morePagesAvailable', 'false');
 	}
-	
+
 	/**
 	 * Add a morePagesAvailable='true' attribute
-	 * 
+	 *
 	 * @return void
 	 * @access public
 	 * @since 7/31/09
@@ -44,10 +44,10 @@ class DomXmlPrinter {
 	public function morePagesAvailable () {
 		$this->doc->documentElement->setAttribute('morePagesAvailable', 'true');
 	}
-	
+
 	/**
 	 * Print out the result entries as an XML document
-	 * 
+	 *
 	 * @param array $entries
 	 * @return void
 	 * @access public
@@ -57,14 +57,14 @@ class DomXmlPrinter {
 		foreach ($entries as $userOrGroup) {
 			$this->addEntry($userOrGroup);
 		}
-		
+
 		@header('Content-Type: text/plain');
 		print $this->doc->saveXML();
 	}
-	
+
 	/**
 	 * Answer the XML string of the entries
-	 * 
+	 *
 	 * @param array $entries
 	 * @return void
 	 * @access public
@@ -74,13 +74,13 @@ class DomXmlPrinter {
 		foreach ($entries as $userOrGroup) {
 			$this->addEntry($userOrGroup);
 		}
-		
+
 		return $this->doc->saveXML();
 	}
-	
+
 	/**
 	 * Add an entry to our document.
-	 * 
+	 *
 	 * @param  LdapUser $userOrGroup
 	 * @return void
 	 * @access protected
@@ -89,12 +89,12 @@ class DomXmlPrinter {
 	protected function addEntry (LdapUser $userOrGroup) {
 		try {
 			$elem = $this->doc->documentElement->appendChild($this->doc->createElementNS('http://www.yale.edu/tp/cas', 'cas:entry'));
-			
+
 			if ($userOrGroup->isGroup())
 				$elem->appendChild($this->doc->createElementNS('http://www.yale.edu/tp/cas', 'cas:group', htmlspecialchars($userOrGroup->getId())));
 			else
 				$elem->appendChild($this->doc->createElementNS('http://www.yale.edu/tp/cas', 'cas:user', $userOrGroup->getId()));
-			
+
 			foreach ($userOrGroup->getAttributeKeys() as $attribute) {
 				foreach ($userOrGroup->getAttributeValues($attribute) as $value) {
 					$attraElem = $elem->appendChild($this->doc->createElementNS('http://www.yale.edu/tp/cas', 'cas:attribute'));
@@ -107,7 +107,7 @@ class DomXmlPrinter {
 			throw $e;
 		}
 	}
-	
+
 }
 
 ?>

@@ -25,20 +25,20 @@
  *
  * All arguments should be passed as query parameters. The following status codes will
  * be returned on error:
- *		
+ *
  *		400 Bad Request						- One or more of the required parameters was missing or invalid.
  *		403 Forbidden						- Proxy Authentication succeeded, but the user is not authorized
  *											  to execute the request.
  *		404 Not Found						- The specified action or id was not found.
- *		407 Proxy Authentication Required	- Proxy Authentication was not successful. 
+ *		407 Proxy Authentication Required	- Proxy Authentication was not successful.
  *
  *
  * @since 3/24/09
  * @package directory
- * 
+ *
  * @copyright Copyright &copy; 2009, Middlebury College
  * @license http://www.gnu.org/copyleft/gpl.html GNU General Public License (GPL)
- */ 
+ */
 
 $name = preg_replace('/[^a-z0-9_-]/i', '', dirname($_SERVER['SCRIPT_NAME']));
 session_name($name);
@@ -72,12 +72,12 @@ if (!defined('ALLOW_DIRECT_CAS_AUTHENTICATION'))
 
 try {
 	$proxy = null;
-	
+
 	if (defined('ADMIN_ACCESS') && isset($_REQUEST['ADMIN_ACCESS']) && $_REQUEST['ADMIN_ACCESS'] == ADMIN_ACCESS) {
-		// Skip authentication for admin scripts. 
+		// Skip authentication for admin scripts.
 		// This may be useful for using the directory as a datasource for updater
 		// scripts.
-		
+
 		// Allow clearing of the APC cache via a POST request with ADMIN_ACCESS
 		if (isset($_REQUEST['action']) && $_REQUEST['action'] == 'clear_cache') {
 			apc_clear_cache('user');
@@ -91,18 +91,18 @@ try {
 		 *********************************************************/
 		// set debug mode
 		phpCAS::setDebug('/tmp/phpCAS_directory.log');
-		
+
 		// initialize phpCAS
 		phpCAS::client(CAS_VERSION_2_0, CAS_HOST, CAS_PORT, CAS_PATH, false);
-		
+
 		// no SSL validation for the CAS server
 		phpCAS::setNoCasServerValidation();
-		
+
 		// force CAS authentication
 		phpCAS::forceAuthentication();
-		
-		
-		// If we are being proxied, limit the the attributes to those allowed to 
+
+
+		// If we are being proxied, limit the the attributes to those allowed to
 		// be passed to the proxying application. As defined in the CAS Protocol
 		//   http://www.jasig.org/cas/protocol
 		// The first proxy listed is the most recent in the request chain. Limit
@@ -122,18 +122,18 @@ try {
 	 * Parse/validate our arguments and run the specified action.
 	 *********************************************************/
 	if (!isset($_GET['action']))
-		throw new UnknownActionException('No action specified.');	
-	
+		throw new UnknownActionException('No action specified.');
+
 	if (SHOW_TIMERS)
 		$start = microtime();
-	
+
 	// Add our proxy to the cache-key in case we are limiting attributes based on it
 	$cacheKey = getCacheKey($_GET, $proxy);
-	
+
 	$xmlString = apc_fetch($cacheKey);
 	if ($xmlString === false) {
-	
-		// If we are being proxied, limit the the attributes to those allowed to 
+
+		// If we are being proxied, limit the the attributes to those allowed to
 		// be passed to the proxying application. As defined in the CAS Protocol
 		//   http://www.jasig.org/cas/protocol
 		// The first proxy listed is the most recent in the request chain. Limit
@@ -145,10 +145,10 @@ try {
 				throw new Exception('No $servicesUser specified.');
 			if (!isset($servicesPassword))
 				throw new Exception('No $servicesPassword specified.');
-			
+
 			$db = new PDO($servicesDSN, $servicesUser, $servicesPassword);
 			$db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-			
+
 			// Determin which service represents the proxying application.
 			$servicesQuery = 'SELECT id, serviceId FROM RegisteredServiceImpl WHERE allowedToProxy = 1 AND enabled = 1 AND ignoreAttributes = 0';
 			$parameterStrings = array();
@@ -160,7 +160,7 @@ try {
 					$matchingServices[] = $row['id'];
 				}
 			}
-			
+
 			// Fetch the list of allowed attributes.
 			if (count($matchingServices)) {
 				$attributeQuery = 'SELECT a_name FROM rs_attributes WHERE RegisteredServiceImpl_id IN ('.implode(', ', $parameterStrings).') GROUP BY a_name;';
@@ -170,7 +170,7 @@ try {
 			} else {
 				$allowedAttributes = array();
 			}
-			
+
 			// Remove any disallowed attributes from the list
 			foreach ($ldapConfig as $i => $connectorConfig) {
 				foreach ($ldapConfig[$i]['UserAttributes'] as $ldapAttr => $casAttr) {
@@ -186,37 +186,37 @@ try {
 				}
 			}
 		}
-		
+
 		// Paginate the results from the user list.
 		if ($_GET['action'] == 'get_all_users') {
 			$minBytes = return_bytes(ALL_USERS_MEMORY_LIMIT);
 			if (return_bytes(ini_get('memory_limit')) < $minBytes)
-				ini_set('memory_limit', $minBytes);	
-			
+				ini_set('memory_limit', $minBytes);
+
 			if (!isset($_GET['page']))
 				$page = 0;
 			else
 				$page = intval($_GET['page']);
-			
+
 			if ($page < 0)
 				throw new InvalidArgumentException("'page' must be 0 or greater.");
-			
+
 			$xmlString  = getAllUsersPageXml($ldapConfig, $page, $proxy);
-			
+
 			if (SHOW_TIMERS)
 				$end = microtime();
-		} 
+		}
 		// Normal case for most actions.
 		else {
 			$results = loadAllResults($ldapConfig);
-			
+
 			if (SHOW_TIMERS)
 				$end = microtime();
-			
+
 			$xmlString = getResultXml($results, $_GET, $proxy);
 		}
-	}	
-	
+	}
+
 	if (SHOW_TIMERS) {
 		if (!isset($end))
 			$end = microtime();
@@ -226,13 +226,14 @@ try {
 		$e = $es + $em;
 		@header('X-Runtime: '.($e-$s));
 	}
-	
-	@header('Content-Type: text/xml');
+
+ 	@header('Content-Type: text/xml');
+//	@header('Content-Type: text/plain');
 	print $xmlString;
-		
+
 	if (SHOW_TIMERS_IN_OUTPUT) {
 		$end2 = microtime();
-		
+
 		list($sm, $ss) = explode(" ", $start);
 		list($em, $es) = explode(" ", $end);
 		$s = $ss + $sm;
@@ -245,7 +246,7 @@ try {
 		print "\n<output_time>".($e-$s)."</output_time>";
 		print "\n<number>".(count($results))."</number>";
 	}
-	
+
 // Handle certain types of uncaught exceptions specially. In particular,
 // Send back HTTP Headers indicating that an error has ocurred to help prevent
 // crawlers from continuing to pound invalid urls.
@@ -260,7 +261,7 @@ try {
 } catch (UnknownIdException $e) {
 	ErrorPrinter::handleException($e, 404);
 }
-// Default 
+// Default
 catch (Exception $e) {
 	ErrorPrinter::handleException($e, 500);
 }

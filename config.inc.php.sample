@@ -49,7 +49,7 @@ $ldapConfig[0]['GroupAttributes']		= array(
 											);
 $ldapConfig[0]['AnyTermSearchAttributes']	= array(
 											'displayName'
-											);											
+											);
 $ldapConfig[0]['SingleTermOnlySearchAttributes']	= array(
 											'mail',
 											'telephonNumber',
