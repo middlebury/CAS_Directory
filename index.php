@@ -85,10 +85,6 @@ try {
 			exit;
 		}
 	} else if (ALLOW_CAS_AUTHENTICATION) {
-		/*********************************************************
-		 * Do proxy authentication and return an error state if
-		 * authentication fails.
-		 *********************************************************/
 		// set debug mode
 		if (defined('PHPCAS_DEBUG_FILE')) {
 			if (PHPCAS_DEBUG_FILE) {
@@ -96,33 +92,54 @@ try {
 			}
 		}
 
-
 		// initialize phpCAS
 		phpCAS::client(CAS_VERSION_2_0, CAS_HOST, CAS_PORT, CAS_PATH, false);
-
 		// no SSL validation for the CAS server
 		phpCAS::setNoCasServerValidation();
 
-		// force CAS authentication
-		phpCAS::forceAuthentication();
+		// Check if the user is authenticated either via the session or tickets in the URL.
+		// We are checking isAuthenticated() here instead of using forceAuthentication() because
+		// we want don't want to blindly redirect services that are just missing the
+		// ADMIN_ACCESS parameter to CAS while still allowing humans or proxy-authenticated
+		// applications to use CAS.
+		if (phpCAS::isAuthenticated()) {
+			// If we are being proxied, limit the the attributes to those allowed to
+			// be passed to the proxying application. As defined in the CAS Protocol
+			//   http://www.jasig.org/cas/protocol
+			// The first proxy listed is the most recent in the request chain. Limit
+			// to that services' allowed attributes.
+			$proxies = phpCAS::getProxies();
+			if (count($proxies)) {
+				$proxy = $proxies[0];
+			} else {
+				// If we not are allowing users to directly authenticate and use the service exit
+				if (!ALLOW_DIRECT_CAS_AUTHENTICATION)
+					throw new PermissionDeniedException("Direct access to this service is not allowed.");
+			}
 
-
-		// If we are being proxied, limit the the attributes to those allowed to
-		// be passed to the proxying application. As defined in the CAS Protocol
-		//   http://www.jasig.org/cas/protocol
-		// The first proxy listed is the most recent in the request chain. Limit
-		// to that services' allowed attributes.
-		$proxies = phpCAS::getProxies();
-		if (count($proxies)) {
-			$proxy = $proxies[0];
+			// Strip out the login parameter.
+			if (!empty($_GET['login'])) {
+				$params = $_GET;
+				unset($params['login']);
+				header('Location: '.$_SERVER['SCRIPT_URI'].'?'.http_build_str($params));
+				exit;
+			}
+		} else if (!empty($_GET['login'])) {
+			phpCAS::forceAuthentication();
+			// Strip out the login parameter.
+			$params = $_GET;
+			unset($params['login']);
+			header('Location: '.$_SERVER['SCRIPT_URI'].'?'.http_build_str($params));
+			exit;
 		} else {
-			// If we not are allowing users to directly authenticate and use the service exit
-			if (!ALLOW_DIRECT_CAS_AUTHENTICATION)
-				throw new PermissionDeniedException("Direct access to this service is not allowed.");
+			$params = $_GET;
+			$params['login'] = 'true';
+			throw new PermissionDeniedException("An access key must be passed for application authentication. Users can <a href='".$_SERVER['SCRIPT_URI'].'?'.http_build_str($params)."'>login with CAS</a>.");
 		}
 	} else {
 		throw new PermissionDeniedException("No access key passed. Access denied.");
 	}
+
 	/*********************************************************
 	 * Parse/validate our arguments and run the specified action.
 	 *********************************************************/
