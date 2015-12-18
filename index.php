@@ -127,6 +127,18 @@ try {
 		exit;
 	}
 
+	if (ALLOW_CAS_AUTHENTICATION && phpCAS::isAuthenticated()) {
+		// If we are being proxied, limit the the attributes to those allowed to
+		// be passed to the proxying application. As defined in the CAS Protocol
+		//   http://www.jasig.org/cas/protocol
+		// The first proxy listed is the most recent in the request chain. Limit
+		// to that services' allowed attributes.
+		$proxies = phpCAS::getProxies();
+		if (count($proxies)) {
+			$proxy = $proxies[0];
+		}
+	}
+
 	/*********************************************************
 	 * Parse/validate our arguments and run the specified action.
 	 *********************************************************/
