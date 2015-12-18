@@ -23,12 +23,12 @@
 class ErrorPrinter {
 
 	/**
- 	 * @var object  $instance;
- 	 * @access private
- 	 * @since 10/10/07
- 	 * @static
- 	 */
- 	private static $instance;
+	 * @var object  $instance;
+	 * @access private
+	 * @since 10/10/07
+	 * @static
+	 */
+	private static $instance;
 
 	/**
 	 * This class implements the Singleton pattern. There is only ever
@@ -233,7 +233,7 @@ class ErrorPrinter {
 			}
 
 			blockquote {
- 				margin-bottom: 50px;
+				margin-bottom: 50px;
 				clear: both;
 			}
 		</style>
