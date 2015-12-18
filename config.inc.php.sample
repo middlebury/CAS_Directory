@@ -21,10 +21,6 @@ define('RESULT_CACHE_TTL', 6 * 60 * 60); // 6 Hours
 // via proxy authentication.
 //define('ALLOW_CAS_AUTHENTICATION', true);
 
-// If you set ALLOW_DIRECT_CAS_AUTHENTICATION users can directly access this service.
-// Note, this will expose directory information to users.
-//define('ALLOW_DIRECT_CAS_AUTHENTICATION', true);
-
 // Define the attribute used for authorization checks
 // and the values allow to access this service.
 // define('CAS_MEMBER_OF_ATTRIBUTE', 'MemberOf');

@@ -73,8 +73,6 @@ if (!defined('ALLOW_URL_TOKEN_AUTHENTICATION'))
 	define('ALLOW_URL_TOKEN_AUTHENTICATION', false);
 if (!defined('ALLOW_CAS_AUTHENTICATION'))
 	define('ALLOW_CAS_AUTHENTICATION', false);
-if (!defined('ALLOW_DIRECT_CAS_AUTHENTICATION'))
-	define('ALLOW_DIRECT_CAS_AUTHENTICATION', false);
 
 try {
 	$proxy = null;
