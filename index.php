@@ -73,8 +73,22 @@ if (!defined('ALLOW_DIRECT_CAS_AUTHENTICATION'))
 try {
 	$proxy = null;
 
+	// Initialize phpCAS
+	if (ALLOW_CAS_AUTHENTICATION) {
+		// set debug mode
+		if (defined('PHPCAS_DEBUG_FILE')) {
+			if (PHPCAS_DEBUG_FILE) {
+				phpCAS::setDebug(PHPCAS_DEBUG_FILE);
+			}
+		}
+		// initialize phpCAS
+		phpCAS::client(CAS_VERSION_2_0, CAS_HOST, CAS_PORT, CAS_PATH, false);
+		// no SSL validation for the CAS server
+		phpCAS::setNoCasServerValidation();
+	}
+
 	if (defined('ADMIN_ACCESS') && isset($_REQUEST['ADMIN_ACCESS']) && $_REQUEST['ADMIN_ACCESS'] == ADMIN_ACCESS) {
-		// Skip authentication for admin scripts.
+		// Skip CAS authentication for admin scripts.
 		// This may be useful for using the directory as a datasource for updater
 		// scripts.
 
@@ -85,18 +99,6 @@ try {
 			exit;
 		}
 	} else if (ALLOW_CAS_AUTHENTICATION) {
-		// set debug mode
-		if (defined('PHPCAS_DEBUG_FILE')) {
-			if (PHPCAS_DEBUG_FILE) {
-				phpCAS::setDebug(PHPCAS_DEBUG_FILE);
-			}
-		}
-
-		// initialize phpCAS
-		phpCAS::client(CAS_VERSION_2_0, CAS_HOST, CAS_PORT, CAS_PATH, false);
-		// no SSL validation for the CAS server
-		phpCAS::setNoCasServerValidation();
-
 		// Check if the user is authenticated either via the session or tickets in the URL.
 		// We are checking isAuthenticated() here instead of using forceAuthentication() because
 		// we want don't want to blindly redirect services that are just missing the
@@ -141,7 +143,7 @@ try {
 	}
 
 	// Check group authorization if we are authenticated via CAS.
-	if (phpCAS::isAuthenticated()) {
+	if (ALLOW_CAS_AUTHENTICATION && phpCAS::isAuthenticated()) {
 		if (empty($cas_allowed_groups) || !is_array($cas_allowed_groups)) {
 			throw new PermissionDeniedException("No groups are configured to access this service. Please contact an administrator if you believe this is incorrect.");
 		} else {
