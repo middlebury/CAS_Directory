@@ -91,14 +91,7 @@ try {
 		// Skip CAS authentication for admin scripts.
 		// This may be useful for using the directory as a datasource for updater
 		// scripts.
-		if (in_array($_REQUEST['ADMIN_ACCESS'], $admin_access_keys)) {
-			// Allow clearing of the APC cache via a POST request with ADMIN_ACCESS
-			if (isset($_REQUEST['action']) && $_REQUEST['action'] == 'clear_cache') {
-				apc_clear_cache('user');
-				print "Cache Cleared";
-				exit;
-			}
-		} else {
+		if (!in_array($_REQUEST['ADMIN_ACCESS'], $admin_access_keys)) {
 			$params = $_GET;
 			$params['login'] = 'true';
 			unset($params['ADMIN_ACCESS']);
@@ -172,6 +165,13 @@ try {
 				throw new PermissionDeniedException("You are not a member of a group granted to access this service. Please contact an administrator if you believe this is incorrect.");
 			}
 		}
+	}
+
+	// Allow clearing of the APC cache for authenticated users.
+	if (isset($_REQUEST['action']) && $_REQUEST['action'] == 'clear_cache') {
+		apc_clear_cache('user');
+		print "Cache Cleared";
+		exit;
 	}
 
 	/*********************************************************
