@@ -49,6 +49,9 @@ session_start();
 require_once(dirname(__FILE__).'/config.inc.php');
 require_once(dirname(__FILE__).'/lib/phpcas/source/CAS.php');
 require_once(dirname(__FILE__).'/lib/AntPath.php');
+require_once(dirname(__FILE__).'/lib/AuthManager.class.php');
+require_once(dirname(__FILE__).'/lib/RequestTokenAuth.class.php');
+require_once(dirname(__FILE__).'/lib/CasAuth.class.php');
 require_once(dirname(__FILE__).'/lib/HarmoniException.class.php');
 require_once(dirname(__FILE__).'/lib/ErrorPrinter.class.php');
 require_once(dirname(__FILE__).'/lib/LdapConnector.class.php');
@@ -73,6 +76,9 @@ if (!defined('ALLOW_DIRECT_CAS_AUTHENTICATION'))
 try {
 	$proxy = null;
 
+	$authManager = new AuthManager();
+	$authManager->addAuth(new RequestTokenAuth($admin_access_keys));
+
 	// Initialize phpCAS
 	if (ALLOW_CAS_AUTHENTICATION) {
 		// set debug mode
@@ -85,47 +91,11 @@ try {
 		phpCAS::client(CAS_VERSION_2_0, CAS_HOST, CAS_PORT, CAS_PATH, false);
 		// no SSL validation for the CAS server
 		phpCAS::setNoCasServerValidation();
-	}
 
-	if (!empty($admin_access_keys) && isset($_REQUEST['ADMIN_ACCESS'])) {
-		// Skip CAS authentication for admin scripts.
-		// This may be useful for using the directory as a datasource for updater
-		// scripts.
-		if (!in_array($_REQUEST['ADMIN_ACCESS'], $admin_access_keys)) {
-			$params = $_GET;
-			$params['login'] = 'true';
-			unset($params['ADMIN_ACCESS']);
-			throw new PermissionDeniedException("Invalid access key be passed for application authentication.");
-		}
-	} else if (ALLOW_CAS_AUTHENTICATION) {
-		// Check if the user is authenticated either via the session or tickets in the URL.
-		// We are checking isAuthenticated() here instead of using forceAuthentication() because
-		// we want don't want to blindly redirect services that are just missing the
-		// ADMIN_ACCESS parameter to CAS while still allowing humans or proxy-authenticated
-		// applications to use CAS.
-		if (phpCAS::isAuthenticated()) {
-			// If we are being proxied, limit the the attributes to those allowed to
-			// be passed to the proxying application. As defined in the CAS Protocol
-			//   http://www.jasig.org/cas/protocol
-			// The first proxy listed is the most recent in the request chain. Limit
-			// to that services' allowed attributes.
-			$proxies = phpCAS::getProxies();
-			if (count($proxies)) {
-				$proxy = $proxies[0];
-			} else {
-				// If we not are allowing users to directly authenticate and use the service exit
-				if (!ALLOW_DIRECT_CAS_AUTHENTICATION)
-					throw new PermissionDeniedException("Direct access to this service is not allowed.");
-			}
+		$authManager->addAuth(new CasAuth($cas_allowed_groups));
 
-			// Strip out the login parameter.
-			if (!empty($_GET['login'])) {
-				$params = $_GET;
-				unset($params['login']);
-				header('Location: '.$_SERVER['SCRIPT_URI'].'?'.http_build_str($params));
-				exit;
-			}
-		} else if (!empty($_GET['login'])) {
+		// Trigger CAS authentication if we have a `login` parameter.
+		if (!empty($_GET['login'])) {
 			phpCAS::forceAuthentication();
 			// Strip out the login parameter.
 			$params = $_GET;
@@ -133,38 +103,17 @@ try {
 			unset($params['ADMIN_ACCESS']);
 			header('Location: '.$_SERVER['SCRIPT_URI'].'?'.http_build_str($params));
 			exit;
-		} else {
-			$params = $_GET;
-			$params['login'] = 'true';
-			unset($params['ADMIN_ACCESS']);
-			throw new PermissionDeniedException("An access key must be passed for application authentication.");
 		}
-	} else {
-		throw new PermissionDeniedException("No access key passed. Access denied.");
 	}
 
-	// Check group authorization if we are authenticated via CAS.
-	if (ALLOW_CAS_AUTHENTICATION && phpCAS::isAuthenticated()) {
-		if (empty($cas_allowed_groups) || !is_array($cas_allowed_groups)) {
-			throw new PermissionDeniedException("No groups are configured to access this service. Please contact an administrator if you believe this is incorrect.");
-		} else {
-			if (!defined('CAS_MEMBER_OF_ATTRIBUTE')) {
-				throw new Exception('CAS_MEMBER_OF_ATTRIBUTE must be defined in the application configuration.');
-			}
-			$allowed = false;
-			$user_groups = phpCAS::getAttribute(CAS_MEMBER_OF_ATTRIBUTE);
-			if (!empty($user_groups)) {
-				// Single-value case.
-				if (!is_array($user_groups)) {
-					$user_groups = array($user_groups);
-				}
-				$intersection = array_intersect($cas_allowed_groups, $user_groups);
-				$allowed = (count($intersection) > 0);
-			}
-			if (!$allowed) {
-				throw new PermissionDeniedException("You are not a member of a group granted to access this service. Please contact an administrator if you believe this is incorrect.");
-			}
-		}
+	$authManager->authenticateAndAuthorize();
+
+	// Strip out the login parameter.
+	if (!empty($_GET['login'])) {
+		$params = $_GET;
+		unset($params['login']);
+		header('Location: '.$_SERVER['SCRIPT_URI'].'?'.http_build_str($params));
+		exit;
 	}
 
 	// Allow clearing of the APC cache for authenticated users.
