@@ -50,6 +50,7 @@ require_once(dirname(__FILE__).'/config.inc.php');
 require_once(dirname(__FILE__).'/lib/phpcas/source/CAS.php');
 require_once(dirname(__FILE__).'/lib/AntPath.php');
 require_once(dirname(__FILE__).'/lib/AuthManager.class.php');
+require_once(dirname(__FILE__).'/lib/HeaderTokenAuth.class.php');
 require_once(dirname(__FILE__).'/lib/RequestTokenAuth.class.php');
 require_once(dirname(__FILE__).'/lib/CasAuth.class.php');
 require_once(dirname(__FILE__).'/lib/HarmoniException.class.php');
@@ -77,6 +78,7 @@ try {
 	$proxy = null;
 
 	$authManager = new AuthManager();
+	$authManager->addAuth(new HeaderTokenAuth($admin_access_keys));
 	$authManager->addAuth(new RequestTokenAuth($admin_access_keys));
 
 	// Initialize phpCAS
