@@ -87,16 +87,22 @@ try {
 		phpCAS::setNoCasServerValidation();
 	}
 
-	if (!empty($admin_access_keys) && isset($_REQUEST['ADMIN_ACCESS']) && in_array($_REQUEST['ADMIN_ACCESS'], $admin_access_keys)) {
+	if (!empty($admin_access_keys) && isset($_REQUEST['ADMIN_ACCESS'])) {
 		// Skip CAS authentication for admin scripts.
 		// This may be useful for using the directory as a datasource for updater
 		// scripts.
-
-		// Allow clearing of the APC cache via a POST request with ADMIN_ACCESS
-		if (isset($_REQUEST['action']) && $_REQUEST['action'] == 'clear_cache') {
-			apc_clear_cache('user');
-			print "Cache Cleared";
-			exit;
+		if (in_array($_REQUEST['ADMIN_ACCESS'], $admin_access_keys)) {
+			// Allow clearing of the APC cache via a POST request with ADMIN_ACCESS
+			if (isset($_REQUEST['action']) && $_REQUEST['action'] == 'clear_cache') {
+				apc_clear_cache('user');
+				print "Cache Cleared";
+				exit;
+			}
+		} else {
+			$params = $_GET;
+			$params['login'] = 'true';
+			unset($params['ADMIN_ACCESS']);
+			throw new PermissionDeniedException("Invalid access key be passed for application authentication. Users can <a href='".$_SERVER['SCRIPT_URI'].'?'.http_build_str($params)."'>login with CAS</a>.");
 		}
 	} else if (ALLOW_CAS_AUTHENTICATION) {
 		// Check if the user is authenticated either via the session or tickets in the URL.
@@ -131,11 +137,13 @@ try {
 			// Strip out the login parameter.
 			$params = $_GET;
 			unset($params['login']);
+			unset($params['ADMIN_ACCESS']);
 			header('Location: '.$_SERVER['SCRIPT_URI'].'?'.http_build_str($params));
 			exit;
 		} else {
 			$params = $_GET;
 			$params['login'] = 'true';
+			unset($params['ADMIN_ACCESS']);
 			throw new PermissionDeniedException("An access key must be passed for application authentication. Users can <a href='".$_SERVER['SCRIPT_URI'].'?'.http_build_str($params)."'>login with CAS</a>.");
 		}
 	} else {
