@@ -87,7 +87,7 @@ try {
 		phpCAS::setNoCasServerValidation();
 	}
 
-	if (defined('ADMIN_ACCESS') && isset($_REQUEST['ADMIN_ACCESS']) && $_REQUEST['ADMIN_ACCESS'] == ADMIN_ACCESS) {
+	if (!empty($admin_access_keys) && isset($_REQUEST['ADMIN_ACCESS']) && in_array($_REQUEST['ADMIN_ACCESS'], $admin_access_keys)) {
 		// Skip CAS authentication for admin scripts.
 		// This may be useful for using the directory as a datasource for updater
 		// scripts.

@@ -8,7 +8,9 @@ define('RESULT_CACHE_TTL', 6 * 60 * 60); // 6 Hours
 
 // Configure authentication for this service.
 // Most implementation will only need to define the ADMIN_ACCESS key.
-//define('ADMIN_ACCESS', 'sdfj239ug2jhg-01jLKJ');
+// $admin_access_keys = array(
+// 		'abc123',
+// 	);
 
 // If you set ALLOW_CAS_AUTHENTICATION to true, then applications which are allowed
 // to proxy by the CAS server will be able to authenticate on behalf of a user
