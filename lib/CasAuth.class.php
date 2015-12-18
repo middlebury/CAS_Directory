@@ -20,8 +20,6 @@ require_once(dirname(__FILE__).'/Auth.interface.php');
  */
 class CasAuth implements Auth {
 
-	protected $messages = array();
-	private $isAuthenticated = false;
 	protected $cas_allowed_groups = array();
 
 	public function __construct(array $cas_allowed_groups) {
