@@ -8,16 +8,27 @@ define('RESULT_CACHE_TTL', 6 * 60 * 60); // 6 Hours
 
 // Configure authentication for this service.
 // Most implementation will only need to define the ADMIN_ACCESS key.
-//define('ADMIN_ACCESS', 'sdfj239ug2jhg-01jLKJ');
+// $admin_access_keys = array(
+// 		'abc123',
+// 	);
+
+// If you set ALLOW_URL_TOKEN_AUTHENTICATION to true, then applications can pass
+// the ADMIN_ACCESS key in the URL rather than in an HTTP header.
+// define('ALLOW_URL_TOKEN_AUTHENTICATION', true);
 
 // If you set ALLOW_CAS_AUTHENTICATION to true, then applications which are allowed
 // to proxy by the CAS server will be able to authenticate on behalf of a user
 // via proxy authentication.
 //define('ALLOW_CAS_AUTHENTICATION', true);
 
-// If you set ALLOW_DIRECT_CAS_AUTHENTICATION users can directly access this service.
-// Note, this will expose directory information to users.
-//define('ALLOW_DIRECT_CAS_AUTHENTICATION', true);
+// Define the attribute used for authorization checks
+// and the values allow to access this service.
+// define('CAS_MEMBER_OF_ATTRIBUTE', 'MemberOf');
+// $cas_allowed_groups = array();
+
+
+// File to write phpCAS debugging information
+//define('PHPCAS_DEBUG_FILE', '/tmp/directory-phpcas.log');
 
 $ldapConfig = array();
 

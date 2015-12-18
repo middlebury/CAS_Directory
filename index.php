@@ -49,6 +49,10 @@ session_start();
 require_once(dirname(__FILE__).'/config.inc.php');
 require_once(dirname(__FILE__).'/lib/phpcas/source/CAS.php');
 require_once(dirname(__FILE__).'/lib/AntPath.php');
+require_once(dirname(__FILE__).'/lib/AuthManager.class.php');
+require_once(dirname(__FILE__).'/lib/HeaderTokenAuth.class.php');
+require_once(dirname(__FILE__).'/lib/RequestTokenAuth.class.php');
+require_once(dirname(__FILE__).'/lib/CasAuth.class.php');
 require_once(dirname(__FILE__).'/lib/HarmoniException.class.php');
 require_once(dirname(__FILE__).'/lib/ErrorPrinter.class.php');
 require_once(dirname(__FILE__).'/lib/LdapConnector.class.php');
@@ -65,43 +69,65 @@ if (!defined('ALL_USERS_MEMORY_LIMIT'))
 	define('ALL_USERS_MEMORY_LIMIT', '300M');
 if (!defined('ALL_USERS_PAGE_SIZE'))
 	define('ALL_USERS_PAGE_SIZE', '100');
+if (!defined('ALLOW_URL_TOKEN_AUTHENTICATION'))
+	define('ALLOW_URL_TOKEN_AUTHENTICATION', false);
 if (!defined('ALLOW_CAS_AUTHENTICATION'))
 	define('ALLOW_CAS_AUTHENTICATION', false);
-if (!defined('ALLOW_DIRECT_CAS_AUTHENTICATION'))
-	define('ALLOW_DIRECT_CAS_AUTHENTICATION', false);
 
 try {
 	$proxy = null;
 
-	if (defined('ADMIN_ACCESS') && isset($_REQUEST['ADMIN_ACCESS']) && $_REQUEST['ADMIN_ACCESS'] == ADMIN_ACCESS) {
-		// Skip authentication for admin scripts.
-		// This may be useful for using the directory as a datasource for updater
-		// scripts.
+	$authManager = new AuthManager();
+	$authManager->addAuth(new HeaderTokenAuth($admin_access_keys));
+	if (ALLOW_URL_TOKEN_AUTHENTICATION) {
+		$authManager->addAuth(new RequestTokenAuth($admin_access_keys));
+	}
 
-		// Allow clearing of the APC cache via a POST request with ADMIN_ACCESS
-		if (isset($_REQUEST['action']) && $_REQUEST['action'] == 'clear_cache') {
-			apc_clear_cache('user');
-			print "Cache Cleared";
-			exit;
-		}
-	} else if (ALLOW_CAS_AUTHENTICATION) {
-		/*********************************************************
-		 * Do proxy authentication and return an error state if
-		 * authentication fails.
-		 *********************************************************/
+	// Initialize phpCAS
+	if (ALLOW_CAS_AUTHENTICATION) {
 		// set debug mode
-		phpCAS::setDebug('/tmp/phpCAS_directory.log');
-
+		if (defined('PHPCAS_DEBUG_FILE')) {
+			if (PHPCAS_DEBUG_FILE) {
+				phpCAS::setDebug(PHPCAS_DEBUG_FILE);
+			}
+		}
 		// initialize phpCAS
 		phpCAS::client(CAS_VERSION_2_0, CAS_HOST, CAS_PORT, CAS_PATH, false);
-
 		// no SSL validation for the CAS server
 		phpCAS::setNoCasServerValidation();
 
-		// force CAS authentication
-		phpCAS::forceAuthentication();
+		$authManager->addAuth(new CasAuth($cas_allowed_groups));
 
+		// Trigger CAS authentication if we have a `login` parameter.
+		if (!empty($_GET['login'])) {
+			phpCAS::forceAuthentication();
+			// Strip out the login parameter.
+			$params = $_GET;
+			unset($params['login']);
+			unset($params['ADMIN_ACCESS']);
+			header('Location: '.$_SERVER['SCRIPT_URI'].'?'.http_build_str($params));
+			exit;
+		}
+	}
 
+	$authManager->authenticateAndAuthorize();
+
+	// Strip out the login parameter.
+	if (!empty($_GET['login'])) {
+		$params = $_GET;
+		unset($params['login']);
+		header('Location: '.$_SERVER['SCRIPT_URI'].'?'.http_build_str($params));
+		exit;
+	}
+
+	// Allow clearing of the APC cache for authenticated users.
+	if (isset($_REQUEST['action']) && $_REQUEST['action'] == 'clear_cache') {
+		apc_clear_cache('user');
+		print "Cache Cleared";
+		exit;
+	}
+
+	if (ALLOW_CAS_AUTHENTICATION && phpCAS::isAuthenticated()) {
 		// If we are being proxied, limit the the attributes to those allowed to
 		// be passed to the proxying application. As defined in the CAS Protocol
 		//   http://www.jasig.org/cas/protocol
@@ -110,14 +136,9 @@ try {
 		$proxies = phpCAS::getProxies();
 		if (count($proxies)) {
 			$proxy = $proxies[0];
-		} else {
-			// If we not are allowing users to directly authenticate and use the service exit
-			if (!ALLOW_DIRECT_CAS_AUTHENTICATION)
-				throw new PermissionDeniedException("Direct access to this service is not allowed.");
 		}
-	} else {
-		throw new PermissionDeniedException("No access key passed. Access denied.");
 	}
+
 	/*********************************************************
 	 * Parse/validate our arguments and run the specified action.
 	 *********************************************************/
@@ -257,7 +278,11 @@ try {
 } catch (InvalidArgumentException $e) {
 	ErrorPrinter::handleException($e, 400);
 } catch (PermissionDeniedException $e) {
-	ErrorPrinter::handleException($e, 403);
+	$params = $_GET;
+	$params['login'] = 'true';
+	unset($params['ADMIN_ACCESS']);
+	$additionalHtml = "Users can <a href='".$_SERVER['SCRIPT_URI'].'?'.http_build_str($params)."'>login with CAS</a>.";
+	ErrorPrinter::handleException($e, 403, $additionalHtml);
 } catch (UnknownIdException $e) {
 	ErrorPrinter::handleException($e, 404);
 }

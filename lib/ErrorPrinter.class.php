@@ -23,12 +23,12 @@
 class ErrorPrinter {
 
 	/**
- 	 * @var object  $instance;
- 	 * @access private
- 	 * @since 10/10/07
- 	 * @static
- 	 */
- 	private static $instance;
+	 * @var object  $instance;
+	 * @access private
+	 * @since 10/10/07
+	 * @static
+	 */
+	private static $instance;
 
 	/**
 	 * This class implements the Singleton pattern. There is only ever
@@ -123,9 +123,9 @@ class ErrorPrinter {
 	 * @since 2/26/08
 	 * @static
 	 */
-	public static function handleException (Exception $e, $code) {
+	public static function handleException (Exception $e, $code, $additionalHtml = '') {
 		$printer = self::instance();
-		$printer->handleAnException($e, $code);
+		$printer->handleAnException($e, $code, $additionalHtml);
 	}
 
 	/**
@@ -137,11 +137,11 @@ class ErrorPrinter {
 	 * @access public
 	 * @since 2/26/08
 	 */
-	public function handleAnException (Exception $e, $code) {
+	public function handleAnException (Exception $e, $code, $additionalHtml = '') {
 // 		ArgumentValidator::validate($code, IntegerValidatorRule::getRule());
 		if (!headers_sent())
 			header('HTTP/1.1 '.$code.' '.self::getCodeString($code));
-		$this->printException($e, $code);
+		$this->printException($e, $code, $additionalHtml);
 		if ($this->shouldLogException($e, $code))
 			error_log($e->getMessage());
 	}
@@ -182,24 +182,25 @@ class ErrorPrinter {
 	 * @since 2/21/08
 	 */
 	private function printException (Exception $e, $code, $additionalHtml = '') {
-		// Debugging mode for development, rethrow the exception
+		$trace_details = '';
 		if (defined('DISPLAY_ERROR_BACKTRACE') && DISPLAY_ERROR_BACKTRACE) {
+			ob_start();
 			print "\n<div class='exception' style='background-color: #FAA; padding: 5px;'>";
-			print "\n<h4>".get_class($e).": ".$e->getMessage()." in ".$e->getFile()." on line ".$e->getLine()."</h4>";
+			print "\n<h4>".get_class($e).": ".$e->getMessage()."</h4>";
+			print "\n<div>in ".$e->getFile()." on line ".$e->getLine()."</div>";
 			print "\n<pre>".$e->getTraceAsString()."</pre>";
 			print "\n</div>\n";
+			$trace_details = ob_get_clean();
 		}
 
-		// Normal production case
-		else {
-			$message = strip_tags($e->getMessage());
-			$codeString = self::getCodeString($code);
-			$errorString = _('Error');
-			if ($this->shouldLogException($e, $code))
-				$logMessage = _('This error has been logged.');
-			else
-				$logMessage = '';
-			print <<< END
+		$message = strip_tags($e->getMessage());
+		$codeString = self::getCodeString($code);
+		$errorString = _('Error');
+		if ($this->shouldLogException($e, $code))
+			$logMessage = _('This error has been logged.');
+		else
+			$logMessage = '';
+		print <<< END
 <html>
 	<head>
 		<title>$code $codeString</title>
@@ -232,7 +233,7 @@ class ErrorPrinter {
 			}
 
 			blockquote {
- 				margin-bottom: 50px;
+				margin-bottom: 50px;
 				clear: both;
 			}
 		</style>
@@ -245,15 +246,15 @@ class ErrorPrinter {
 		<blockquote>
 			<h1>$codeString</h1>
 			<p>$message</p>
+			<p>$additionalHtml</p>
+			<div>$trace_details</div>
 		</blockquote>
 		<p>$logMessage</p>
 		<p>Usage Documentation: <a href='https://mediawiki.middlebury.edu/wiki/LIS/CAS_Directory'>https://mediawiki.middlebury.edu/wiki/LIS/CAS_Directory</a></p>
-		$additionalHtml
 	</body>
 </html>
 
 END;
-		}
 	}
 
 	/**
