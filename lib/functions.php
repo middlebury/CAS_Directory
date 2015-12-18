@@ -243,3 +243,23 @@ function getResultXml (array $results, array $params, $proxy = null, $hasMore = 
 
 	return $xmlString;
 }
+
+// Add our own http_build_string if pecl_http isn't installed.
+if (!function_exists('http_build_str')) {
+	function http_build_str(array $query, $prefix = '', $arg_separator = null ) {
+		if (is_null($arg_separator)) {
+			$arg_separator = ini_get("arg_separator.output");
+		}
+		$strings = array();
+		foreach ($query as $key => $val) {
+			if (is_array($val)) {
+				foreach ($val as $i => $j) {
+						$strings[] = rawurlencode($key).'[]='.rawurlencode($j);
+				}
+			} else {
+					$strings[] = rawurlencode($key).'='.rawurlencode($val);
+			}
+		}
+		return $prefix.implode($arg_separator, $strings);
+	}
+}
