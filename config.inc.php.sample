@@ -12,6 +12,10 @@ define('RESULT_CACHE_TTL', 6 * 60 * 60); // 6 Hours
 // 		'abc123',
 // 	);
 
+// If you set ALLOW_URL_TOKEN_AUTHENTICATION to true, then applications can pass
+// the ADMIN_ACCESS key in the URL rather than in an HTTP header.
+// define('ALLOW_URL_TOKEN_AUTHENTICATION', true);
+
 // If you set ALLOW_CAS_AUTHENTICATION to true, then applications which are allowed
 // to proxy by the CAS server will be able to authenticate on behalf of a user
 // via proxy authentication.

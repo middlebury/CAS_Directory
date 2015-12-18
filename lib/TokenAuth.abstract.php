@@ -63,7 +63,7 @@ abstract class TokenAuth implements Auth {
 			}
 			$this->messages[] = $this->formatMessage("Service token is present in @location, but invalid");
 		} else {
-			$this->messages[] = "No service token specified";
+			$this->messages[] = $this->formatMessage("No service token specified in @location.");
 		}
 		return false;
 	}

@@ -69,6 +69,8 @@ if (!defined('ALL_USERS_MEMORY_LIMIT'))
 	define('ALL_USERS_MEMORY_LIMIT', '300M');
 if (!defined('ALL_USERS_PAGE_SIZE'))
 	define('ALL_USERS_PAGE_SIZE', '100');
+if (!defined('ALLOW_URL_TOKEN_AUTHENTICATION'))
+	define('ALLOW_URL_TOKEN_AUTHENTICATION', false);
 if (!defined('ALLOW_CAS_AUTHENTICATION'))
 	define('ALLOW_CAS_AUTHENTICATION', false);
 if (!defined('ALLOW_DIRECT_CAS_AUTHENTICATION'))
@@ -79,7 +81,9 @@ try {
 
 	$authManager = new AuthManager();
 	$authManager->addAuth(new HeaderTokenAuth($admin_access_keys));
-	$authManager->addAuth(new RequestTokenAuth($admin_access_keys));
+	if (ALLOW_URL_TOKEN_AUTHENTICATION) {
+		$authManager->addAuth(new RequestTokenAuth($admin_access_keys));
+	}
 
 	// Initialize phpCAS
 	if (ALLOW_CAS_AUTHENTICATION) {
