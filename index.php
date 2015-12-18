@@ -95,7 +95,7 @@ try {
 			$params = $_GET;
 			$params['login'] = 'true';
 			unset($params['ADMIN_ACCESS']);
-			throw new PermissionDeniedException("Invalid access key be passed for application authentication. Users can <a href='".$_SERVER['SCRIPT_URI'].'?'.http_build_str($params)."'>login with CAS</a>.");
+			throw new PermissionDeniedException("Invalid access key be passed for application authentication.");
 		}
 	} else if (ALLOW_CAS_AUTHENTICATION) {
 		// Check if the user is authenticated either via the session or tickets in the URL.
@@ -137,7 +137,7 @@ try {
 			$params = $_GET;
 			$params['login'] = 'true';
 			unset($params['ADMIN_ACCESS']);
-			throw new PermissionDeniedException("An access key must be passed for application authentication. Users can <a href='".$_SERVER['SCRIPT_URI'].'?'.http_build_str($params)."'>login with CAS</a>.");
+			throw new PermissionDeniedException("An access key must be passed for application authentication.");
 		}
 	} else {
 		throw new PermissionDeniedException("No access key passed. Access denied.");
@@ -313,7 +313,11 @@ try {
 } catch (InvalidArgumentException $e) {
 	ErrorPrinter::handleException($e, 400);
 } catch (PermissionDeniedException $e) {
-	ErrorPrinter::handleException($e, 403);
+	$params = $_GET;
+	$params['login'] = 'true';
+	unset($params['ADMIN_ACCESS']);
+	$additionalHtml = "Users can <a href='".$_SERVER['SCRIPT_URI'].'?'.http_build_str($params)."'>login with CAS</a>.";
+	ErrorPrinter::handleException($e, 403, $additionalHtml);
 } catch (UnknownIdException $e) {
 	ErrorPrinter::handleException($e, 404);
 }

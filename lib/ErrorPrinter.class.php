@@ -123,9 +123,9 @@ class ErrorPrinter {
 	 * @since 2/26/08
 	 * @static
 	 */
-	public static function handleException (Exception $e, $code) {
+	public static function handleException (Exception $e, $code, $additionalHtml = '') {
 		$printer = self::instance();
-		$printer->handleAnException($e, $code);
+		$printer->handleAnException($e, $code, $additionalHtml);
 	}
 
 	/**
@@ -137,11 +137,11 @@ class ErrorPrinter {
 	 * @access public
 	 * @since 2/26/08
 	 */
-	public function handleAnException (Exception $e, $code) {
+	public function handleAnException (Exception $e, $code, $additionalHtml = '') {
 // 		ArgumentValidator::validate($code, IntegerValidatorRule::getRule());
 		if (!headers_sent())
 			header('HTTP/1.1 '.$code.' '.self::getCodeString($code));
-		$this->printException($e, $code);
+		$this->printException($e, $code, $additionalHtml);
 		if ($this->shouldLogException($e, $code))
 			error_log($e->getMessage());
 	}
@@ -187,6 +187,7 @@ class ErrorPrinter {
 			print "\n<div class='exception' style='background-color: #FAA; padding: 5px;'>";
 			print "\n<h4>".get_class($e).": ".$e->getMessage()." in ".$e->getFile()." on line ".$e->getLine()."</h4>";
 			print "\n<pre>".$e->getTraceAsString()."</pre>";
+			print "\n<div>".$additionalHtml."</div>";
 			print "\n</div>\n";
 		}
 
@@ -245,10 +246,10 @@ class ErrorPrinter {
 		<blockquote>
 			<h1>$codeString</h1>
 			<p>$message</p>
+			<p>$additionalHtml</p>
 		</blockquote>
 		<p>$logMessage</p>
 		<p>Usage Documentation: <a href='https://mediawiki.middlebury.edu/wiki/LIS/CAS_Directory'>https://mediawiki.middlebury.edu/wiki/LIS/CAS_Directory</a></p>
-		$additionalHtml
 	</body>
 </html>
 
