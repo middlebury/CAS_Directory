@@ -26,6 +26,8 @@ define('RESULT_CACHE_TTL', 6 * 60 * 60); // 6 Hours
 // define('CAS_MEMBER_OF_ATTRIBUTE', 'MemberOf');
 // $cas_allowed_groups = array();
 
+//Define the CAS service registry json file patch
+$serviceRegistryPath = 'path/to/cas/json/files';
 
 // File to write phpCAS debugging information
 //define('PHPCAS_DEBUG_FILE', '/tmp/directory-phpcas.log');
@@ -66,10 +68,6 @@ $ldapConfig[0]['SingleTermOnlySearchAttributes']	= array(
 											'telephonNumber',
 											'sAMAccountName'
 											);
-
-$servicesDSN = 'mysql:dbname=cas;login.middlebury.edu';
-$servicesUser = 'testuser';
-$servicesPassword = 'testpassword';
 
 define('DISPLAY_ERROR_BACKTRACE', false);
 define('SHOW_TIMERS', false);

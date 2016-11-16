@@ -160,34 +160,43 @@ try {
 		// The first proxy listed is the most recent in the request chain. Limit
 		// to that services' allowed attributes.
 		if (isset($proxy)) {
-			if (!isset($servicesDSN))
-				throw new Exception('No $servicesDSN specified.');
-			if (!isset($servicesUser))
-				throw new Exception('No $servicesUser specified.');
-			if (!isset($servicesPassword))
-				throw new Exception('No $servicesPassword specified.');
+			if (!isset($serviceRegistryPath))
+				throw new Exception('No $serviceRegistryPath specified.');
 
-			$db = new PDO($servicesDSN, $servicesUser, $servicesPassword);
-			$db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-
-			// Determin which service represents the proxying application.
-			$servicesQuery = 'SELECT id, serviceId FROM RegisteredServiceImpl WHERE allowedToProxy = 1 AND enabled = 1 AND ignoreAttributes = 0';
-			$parameterStrings = array();
-			$matchingServices = array();
-			foreach ($db->query($servicesQuery) as $row) {
-				$path = new AntPath($row['serviceId']);
-				if ($path->matches($proxy)) {
-					$parameterStrings[] = '?';
-					$matchingServices[] = $row['id'];
-				}
-			}
+			// Determine which service represents the proxying application.
+			// Scan through json service registry files and find matching serviceId.
+			// If proxy service is found, retrieve allowedAttributes from json file.
+			$serviceFiles = scandir($serviceRegistryPath);
+			foreach ($serviceFiles as $serviceFile) {
+			  if($serviceFile)
+			  {
+          $serviceFileContents = file_get_contents($serviceRegistryPath . '/' . $serviceFile);
+          $serviceData = json_decode($serviceFileContents,true);
+          $serviceId = $serviceData['serviceId'];
+          if($serviceId)
+          {
+            $path = new AntPath($serviceId);
+            if ($path->matches($proxy)) {
+              $attributes = $serviceData['attributeReleasePolicy']['allowedAttributes'][1];
+              if($attributes){
+                $matchingServices[]= array(
+                    "serviceId" => $serviceId,
+                    "allowedAttributes" => $attributes,
+                );
+              }else{
+                $matchingServices[]= array(
+                    "serviceId" => $serviceId,
+                    "allowedAttributes" => array(),
+                );
+              }
+            }
+          }
+        }
+      }
 
 			// Fetch the list of allowed attributes.
 			if (count($matchingServices)) {
-				$attributeQuery = 'SELECT a_name FROM rs_attributes WHERE RegisteredServiceImpl_id IN ('.implode(', ', $parameterStrings).') GROUP BY a_name;';
-				$attributeStmt = $db->prepare($attributeQuery);
-				$attributeStmt->execute($matchingServices);
-				$allowedAttributes = $attributeStmt->fetchAll(PDO::FETCH_COLUMN);
+        $allowedAttributes = $matchingServices[0]['allowedAttributes'];
 			} else {
 				$allowedAttributes = array();
 			}

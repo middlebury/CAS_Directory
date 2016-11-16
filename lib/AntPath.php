@@ -31,6 +31,7 @@ class AntPath {
 			throw new InvalidArgumentException('$path must be a string');
 
 		$this->pattern = $this->escape($path);
+		$this->pattern = str_replace('\.\*', '.*', $this->pattern);
 		$this->pattern = str_replace('\*\*', '.*', $this->pattern);
 		$this->pattern = str_replace('\*', '[^/]*', $this->pattern);
 		$this->pattern = str_replace('\?', '[^/]?', $this->pattern);
