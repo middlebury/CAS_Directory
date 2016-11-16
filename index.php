@@ -170,33 +170,33 @@ try {
 			foreach ($serviceFiles as $serviceFile) {
 			  if($serviceFile)
 			  {
-          $serviceFileContents = file_get_contents($serviceRegistryPath . '/' . $serviceFile);
-          $serviceData = json_decode($serviceFileContents,true);
-          $serviceId = $serviceData['serviceId'];
-          if($serviceId)
-          {
-            $path = new AntPath($serviceId);
-            if ($path->matches($proxy)) {
-              $attributes = $serviceData['attributeReleasePolicy']['allowedAttributes'][1];
-              if($attributes){
-                $matchingServices[]= array(
-                    "serviceId" => $serviceId,
-                    "allowedAttributes" => $attributes,
-                );
-              }else{
-                $matchingServices[]= array(
-                    "serviceId" => $serviceId,
-                    "allowedAttributes" => array(),
-                );
-              }
-            }
-          }
-        }
-      }
+					$serviceFileContents = file_get_contents($serviceRegistryPath . '/' . $serviceFile);
+					$serviceData = json_decode($serviceFileContents,true);
+					$serviceId = $serviceData['serviceId'];
+					if($serviceId)
+					{
+						$path = new AntPath($serviceId);
+						if ($path->matches($proxy)) {
+							$attributes = $serviceData['attributeReleasePolicy']['allowedAttributes'][1];
+							if($attributes){
+								$matchingServices[]= array(
+									"serviceId" => $serviceId,
+									"allowedAttributes" => $attributes,
+								);
+							}else{
+								$matchingServices[]= array(
+									"serviceId" => $serviceId,
+									"allowedAttributes" => array(),
+								);
+							}
+						}
+					}
+				}
+			}
 
 			// Fetch the list of allowed attributes.
 			if (count($matchingServices)) {
-        $allowedAttributes = $matchingServices[0]['allowedAttributes'];
+				$allowedAttributes = $matchingServices[0]['allowedAttributes'];
 			} else {
 				$allowedAttributes = array();
 			}
