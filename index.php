@@ -136,6 +136,7 @@ try {
 		$proxies = phpCAS::getProxies();
 		if (count($proxies)) {
 			$proxy = $proxies[0];
+			error_log("INFO: CAS Directory Proxy Request " . $proxy . " from Client: " . $_SERVER['REMOTE_ADDR'],0);
 		}
 	}
 
