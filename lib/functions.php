@@ -72,6 +72,9 @@ function loadAllResults (array $ldapConfig) {
 				case 'get_all_users':
 					$results = array_merge($results, $connector->getAllUsers($_GET));
 					break;
+				case 'get_all_count':
+					$results = array_merge($results, array($connectorConfig['LDAPHost'] => $connector->getAllCount($_GET)));
+					break;
 				default:
 					throw new UnknownActionException('action, \''.$_GET['action'].'\' is not one of [search_users, search_groups, get_user, get_group].');
 			}

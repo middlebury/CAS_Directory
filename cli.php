@@ -40,10 +40,11 @@
  * @license http://www.gnu.org/copyleft/gpl.html GNU General Public License (GPL)
  */
 
-$name = preg_replace('/[^a-z0-9_-]/i', '', dirname($_SERVER['SCRIPT_NAME']));
-session_name($name);
+if (php_sapi_name() != "cli") {
+	die("This script can only be run from the command line.");
+}
 
-session_start();
+parse_str(implode('&', array_slice($argv, 1)), $_GET);
 
 
 require_once(dirname(__FILE__).'/config.inc.php');
@@ -75,68 +76,12 @@ if (!defined('ALLOW_CAS_AUTHENTICATION'))
 	define('ALLOW_CAS_AUTHENTICATION', false);
 
 try {
-	$proxy = null;
-
-	$authManager = new AuthManager();
-	$authManager->addAuth(new HeaderTokenAuth($admin_access_keys));
-	if (ALLOW_URL_TOKEN_AUTHENTICATION) {
-		$authManager->addAuth(new RequestTokenAuth($admin_access_keys));
-	}
-
-	// Initialize phpCAS
-	if (ALLOW_CAS_AUTHENTICATION) {
-		// set debug mode
-		if (defined('PHPCAS_DEBUG_FILE')) {
-			if (PHPCAS_DEBUG_FILE) {
-				phpCAS::setDebug(PHPCAS_DEBUG_FILE);
-			}
-		}
-		// initialize phpCAS
-		phpCAS::client(CAS_VERSION_2_0, CAS_HOST, CAS_PORT, CAS_PATH, false);
-		// no SSL validation for the CAS server
-		phpCAS::setNoCasServerValidation();
-
-		$authManager->addAuth(new CasAuth($cas_allowed_groups));
-
-		// Trigger CAS authentication if we have a `login` parameter.
-		if (!empty($_GET['login'])) {
-			phpCAS::forceAuthentication();
-			// Strip out the login parameter.
-			$params = $_GET;
-			unset($params['login']);
-			unset($params['ADMIN_ACCESS']);
-			header('Location: '.$_SERVER['SCRIPT_URI'].'?'.http_build_str($params));
-			exit;
-		}
-	}
-
-	$authManager->authenticateAndAuthorize();
-
-	// Strip out the login parameter.
-	if (!empty($_GET['login'])) {
-		$params = $_GET;
-		unset($params['login']);
-		header('Location: '.$_SERVER['SCRIPT_URI'].'?'.http_build_str($params));
-		exit;
-	}
 
 	// Allow clearing of the APC cache for authenticated users.
 	if (isset($_REQUEST['action']) && $_REQUEST['action'] == 'clear_cache') {
 		apc_clear_cache('user');
 		print "Cache Cleared";
 		exit;
-	}
-
-	if (ALLOW_CAS_AUTHENTICATION && phpCAS::isAuthenticated()) {
-		// If we are being proxied, limit the the attributes to those allowed to
-		// be passed to the proxying application. As defined in the CAS Protocol
-		//   http://www.jasig.org/cas/protocol
-		// The first proxy listed is the most recent in the request chain. Limit
-		// to that services' allowed attributes.
-		$proxies = phpCAS::getProxies();
-		if (count($proxies)) {
-			$proxy = $proxies[0];
-		}
 	}
 
 	/*********************************************************
@@ -148,10 +93,7 @@ try {
 	if (SHOW_TIMERS)
 		$start = microtime();
 
-	// Add our proxy to the cache-key in case we are limiting attributes based on it
-	$cacheKey = getCacheKey($_GET, $proxy);
-
-	$xmlString = apc_fetch($cacheKey);
+	$xmlString = false;
 	if ($xmlString === false) {
 
 		// If we are being proxied, limit the the attributes to those allowed to
@@ -229,17 +171,24 @@ try {
 		}
 		elseif ($_GET['action'] == 'get_all_count') {
 			$results = loadAllResults($ldapConfig);
-			$xmlString = "<"."?xml version=\"1.0\" encoding=\"utf-8\"?".">
-<counts date='".date('c')."'>";
-			foreach ($results as $host => $host_result) {
-				$xmlString .= "\n\t<connection host='".$host."'>";
-				$xmlString .= "
-		<num_users>".$host_result['num_users']."</num_users>
-		<num_groups>".$host_result['num_groups']."</num_groups>
-		<num_memberships>".$host_result['num_memberships']."</num_memberships>";
-				$xmlString .= "\n\t</connection>";
+			if ($_GET['format'] == 'json') {
+				print date('c')." ";
+				print json_encode($results);
+				print "\n";
+				exit;
+			} else {
+				$xmlString = "<"."?xml version=\"1.0\" encoding=\"utf-8\"?".">
+	<counts date='".date('c')."'>";
+				foreach ($results as $host => $host_result) {
+					$xmlString .= "\n\t<connection host='".$host."'>";
+					$xmlString .= "
+			<num_users>".$host_result['num_users']."</num_users>
+			<num_groups>".$host_result['num_groups']."</num_groups>
+			<num_memberships>".$host_result['num_memberships']."</num_memberships>";
+					$xmlString .= "\n\t</connection>";
+				}
+				$xmlString .= "\n</counts>\n";
 			}
-			$xmlString .= "\n</counts>";
 		}
 		// Normal case for most actions.
 		else {
