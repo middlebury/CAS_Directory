@@ -124,6 +124,11 @@ class LdapUser {
 			$values[] = $this->entryArray[$attribute][$i];
 		}
 
+		// Unescape forward-slashes in LDAP attributes
+		foreach ($values as &$value) {
+			$value = str_replace('\\2f', '/', $value);
+		}
+
 		return $values;
 	}
 
