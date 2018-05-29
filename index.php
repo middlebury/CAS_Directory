@@ -122,7 +122,7 @@ try {
 
 	// Allow clearing of the APC cache for authenticated users.
 	if (isset($_REQUEST['action']) && $_REQUEST['action'] == 'clear_cache') {
-		apc_clear_cache('user');
+		apcu_clear_cache('user');
 		print "Cache Cleared";
 		exit;
 	}
@@ -152,7 +152,7 @@ try {
 	// Add our proxy to the cache-key in case we are limiting attributes based on it
 	$cacheKey = getCacheKey($_GET, $proxy);
 
-	$xmlString = apc_fetch($cacheKey);
+	$xmlString = apcu_fetch($cacheKey);
 	if ($xmlString === false) {
 
 		// If we are being proxied, limit the the attributes to those allowed to

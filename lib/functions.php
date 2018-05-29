@@ -125,7 +125,7 @@ function getAllUsersPageXml (array $ldapConfig, $page, $proxy = null) {
 	$numPagesCacheKey = getCacheKey(array(), $proxy, 'all_users_pages');
 
 	// If we haven't cached the page results, cache them and return the requested one.
-	$allUsersPages = apc_fetch($numPagesCacheKey);
+	$allUsersPages = apcu_fetch($numPagesCacheKey);
 	if ($allUsersPages === false) {
 		return loadAllUsersCache($ldapConfig, $page, $proxy);
 	}
@@ -140,7 +140,7 @@ function getAllUsersPageXml (array $ldapConfig, $page, $proxy = null) {
 	$params['page'] = $page;
 	$pageCacheKey = getCacheKey($params, $proxy);
 
-	$allUsersString = apc_fetch($pageCacheKey);
+	$allUsersString = apcu_fetch($pageCacheKey);
 
 	// If we haven't cached the page results, cache them and return the requested one.
 	if ($allUsersString === false) {
@@ -182,7 +182,7 @@ function loadAllUsersCache (array $ldapConfig, $page, $proxy = null) {
 	}
 
 	$numPagesCacheKey = getCacheKey(array(), $proxy, 'all_users_pages');
-	apc_store($numPagesCacheKey, $curPage, RESULT_CACHE_TTL);
+	apcu_store($numPagesCacheKey, $curPage, RESULT_CACHE_TTL);
 
 	if (isset($requestedPageXml))
 		return $requestedPageXml;
@@ -239,7 +239,7 @@ function getResultXml (array $results, array $params, $proxy = null, $hasMore = 
 	$xmlString = $printer->getOutput($results);
 
 	$pageCacheKey = getCacheKey($params, $proxy);
-	apc_store($pageCacheKey, $xmlString, RESULT_CACHE_TTL);
+	apcu_store($pageCacheKey, $xmlString, RESULT_CACHE_TTL);
 
 	return $xmlString;
 }
