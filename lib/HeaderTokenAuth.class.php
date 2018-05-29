@@ -26,7 +26,8 @@ class HeaderTokenAuth extends TokenAuth {
 	 * @return boolean
 	 */
 	protected function hasRequestTokens() {
-		return isset($_SERVER['HTTP_ADMIN_ACCESS']);
+		$headers = getallheaders();
+		return isset($headers['ADMIN_ACCESS']);
 	}
 
 	/**
@@ -35,11 +36,12 @@ class HeaderTokenAuth extends TokenAuth {
 	 * @return string The tokens.
 	 */
 	protected function getRequestTokens() {
-		if (empty($_SERVER['HTTP_ADMIN_ACCESS'])) {
+		$headers = getallheaders();
+		if (empty($headers['ADMIN_ACCESS'])) {
 			$this->messages[] = $this->formatMessage("@location exists, but is empty.");
 			return "";
 		}
-		return $_SERVER['HTTP_ADMIN_ACCESS'];
+		return $headers['ADMIN_ACCESS'];
 	}
 
   /**
