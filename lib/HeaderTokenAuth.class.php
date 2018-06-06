@@ -26,8 +26,7 @@ class HeaderTokenAuth extends TokenAuth {
 	 * @return boolean
 	 */
 	protected function hasRequestTokens() {
-		$headers = getallheaders();
-		return isset($headers['ADMIN_ACCESS']);
+		return !empty($this->getAccessToken());
 	}
 
 	/**
@@ -36,12 +35,12 @@ class HeaderTokenAuth extends TokenAuth {
 	 * @return string The tokens.
 	 */
 	protected function getRequestTokens() {
-		$headers = getallheaders();
-		if (empty($headers['ADMIN_ACCESS'])) {
+		$header = $this->getAccessToken();
+		if (empty($header) && !is_null($header)) {
 			$this->messages[] = $this->formatMessage("@location exists, but is empty.");
 			return "";
 		}
-		return $headers['ADMIN_ACCESS'];
+		return $header;
 	}
 
   /**
@@ -51,6 +50,23 @@ class HeaderTokenAuth extends TokenAuth {
 	 */
 	protected function getTokenLocation() {
 		return "the ADMIN_ACCESS HTTP header";
+	}
+
+	/**
+	 * Get the access token from the request headers.
+	 *
+	 * @return Array
+	 */
+	protected function getAccessToken() {
+		$headers = getallheaders();
+		$headers = array_change_key_case($headers, CASE_UPPER);
+		if (isset($headers['ADMIN_ACCESS']))  {
+			return $headers['ADMIN_ACCESS'];
+		}
+		if (isset($headers['ADMIN-ACCESS'])) {
+			return $headers['ADMIN-ACCESS'];
+		}
+		return null;
 	}
 
 }
