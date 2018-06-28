@@ -58,6 +58,7 @@ require_once(dirname(__FILE__).'/lib/LdapConnector.class.php');
 require_once(dirname(__FILE__).'/lib/XmlPrinter.interface.php');
 require_once(dirname(__FILE__).'/lib/DomXmlPrinter.class.php');
 require_once(dirname(__FILE__).'/lib/DirectXmlPrinter.class.php');
+require_once(dirname(__FILE__).'/lib/XmlWriterXmlPrinter.class.php');
 require_once(dirname(__FILE__).'/lib/functions.php');
 require_once(dirname(__FILE__).'/config.inc.php');
 
