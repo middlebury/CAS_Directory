@@ -236,7 +236,7 @@ function getCacheKey (array $vars, $suffix = null, $prefix = null) {
  * @since 7/31/09
  */
 function getResultXml (array $results, array $params, $proxy = null, $hasMore = false) {
-	$printer = new DomXmlPrinter;
+	$printer = getXmlPrinter();
 	if ($hasMore)
 		$printer->morePagesAvailable();
 
@@ -266,4 +266,22 @@ if (!function_exists('http_build_str')) {
 		}
 		return $prefix.implode($arg_separator, $strings);
 	}
+}
+
+/**
+ * Answer an XmlPrinter implementation based on our configuration.
+ *
+ * return XmlPrinterInterface An instance of the XmlPrinterInterface.
+ */
+function getXmlPrinter() {
+	if (defined('XML_PRINTER_CLASS')) {
+		$class = XML_PRINTER_CLASS;
+	} else {
+		$class = "DomXmlPrinter";
+	}
+	$printer = new $class;
+	if (!($printer instanceof XmlPrinterInterface)) {
+		throw new InvalidArgumentException("$class must implement XmlPrinterInterface");
+	}
+	return $printer;
 }

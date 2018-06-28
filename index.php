@@ -56,6 +56,7 @@ require_once(dirname(__FILE__).'/lib/CasAuth.class.php');
 require_once(dirname(__FILE__).'/lib/HarmoniException.class.php');
 require_once(dirname(__FILE__).'/lib/ErrorPrinter.class.php');
 require_once(dirname(__FILE__).'/lib/LdapConnector.class.php');
+require_once(dirname(__FILE__).'/lib/XmlPrinter.interface.php');
 require_once(dirname(__FILE__).'/lib/DomXmlPrinter.class.php');
 require_once(dirname(__FILE__).'/lib/functions.php');
 
