@@ -30,6 +30,9 @@ define('RESULT_CACHE_TTL', 6 * 60 * 60); // 6 Hours
 // File to write phpCAS debugging information
 //define('PHPCAS_DEBUG_FILE', '/tmp/directory-phpcas.log');
 
+// Choose the XmlPrinter implementation to use. DomXmlPrinter is the default.
+//define('XML_PRINTER_CLASS', 'DirectXmlPrinter');
+
 $ldapConfig = array();
 
 // Configure the first LDAP Server.
