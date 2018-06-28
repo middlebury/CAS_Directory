@@ -277,7 +277,7 @@ function getXmlPrinter() {
 	if (defined('XML_PRINTER_CLASS')) {
 		$class = XML_PRINTER_CLASS;
 	} else {
-		$class = "DomXmlPrinter";
+		$class = "XmlWriterXmlPrinter";
 	}
 	$printer = new $class;
 	if (!($printer instanceof XmlPrinterInterface)) {
