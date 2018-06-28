@@ -9,7 +9,9 @@
 
 
 /**
- * A printer for generating the appropriate XML output.
+ * A printer for generating the appropriate XML output. Note that this printer
+ * has not yet successfully ensured identical output with the DomXmlPrinter or
+ * the XmlWriterXmlPrinter.
  *
  * @since 3/30/09
  * @package directory
@@ -17,17 +19,29 @@
  * @copyright Copyright &copy; 2009, Middlebury College
  * @license http://www.gnu.org/copyleft/gpl.html GNU General Public License (GPL)
  */
-class XmlPrinter {
+class DirectXmlPrinter implements XmlPrinterInterface {
+
+	protected $morePagesAvailable = false;
 
 	/**
-	 * Constructor
+	 * Add a morePagesAvailable='true' attribute
 	 *
-	 * @return void
-	 * @access public
-	 * @since 3/30/09
+	 * @return null
 	 */
-	public function __construct () {
+	public function morePagesAvailable () {
+		$this->morePagesAvailable = true;
+	}
 
+	/**
+	 * Answer the XML string of the entries
+	 *
+	 * @param array $entries An array of LdapUser or LdapGroup objects.
+	 * @return string
+	 */
+	public function getOutput (array $entries) {
+		ob_start();
+		$this->output($entries);
+		return ob_get_clean();
 	}
 
 	/**
@@ -39,8 +53,9 @@ class XmlPrinter {
 	 * @since 3/30/09
 	 */
 	public function output (array $entries) {
-		print '<'.'?xml version="1.0" encoding="utf-8"?'.'>
-<cas:results xmlns:cas="http://www.yale.edu/tp/cas">';
+		print '<'.'?xml version="1.0" encoding="utf-8"?'.'>';
+		print '
+<cas:results xmlns:cas="http://www.yale.edu/tp/cas" morePagesAvailable="'.($this->morePagesAvailable?'true':'false').'">';
 
 		foreach ($entries as $userOrGroup) {
 			$this->addEntry($userOrGroup);
@@ -58,19 +73,19 @@ class XmlPrinter {
 	 */
 	protected function addEntry (LdapUser $userOrGroup) {
 		try {
-			print "\n\t<cas:entry>";
+			print "\n  <cas:entry>";
 
 			if ($userOrGroup->isGroup())
-				print "\n\t\t<cas:group>".htmlentities($userOrGroup->getId())."</cas:group>";
+				print "\n    <cas:group>".htmlentities($userOrGroup->getId())."</cas:group>";
 			else
-				print "\n\t\t<cas:user>".htmlentities($userOrGroup->getId())."</cas:user>";
+				print "\n    <cas:user>".htmlentities($userOrGroup->getId())."</cas:user>";
 
 			foreach ($userOrGroup->getAttributeKeys() as $attribute) {
 				foreach ($userOrGroup->getAttributeValues($attribute) as $value) {
-					print "\n\t\t<cas:attribute name=\"".$attribute."\" value=\"".htmlentities($value)."\"/>";
+					print "\n    <cas:attribute name=\"".$attribute."\" value=\"".htmlentities($value)."\"/>";
 				}
 			}
-			print "\n\t</cas:entry>";
+			print "\n  </cas:entry>";
 		} catch (OperationFailedException $e) {
 			print_r($userOrGroup);
 			throw $e;
