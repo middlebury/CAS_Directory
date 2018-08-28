@@ -21,6 +21,7 @@ function loadAllResults (array $ldapConfig) {
 		$connector = new LdapConnector($connectorConfig);
 		$connector->connect();
 		$error  = '';
+		$errorTypes = [];
 
 		try {
 			switch ($_GET['action']) {
@@ -67,6 +68,7 @@ function loadAllResults (array $ldapConfig) {
 						$results = array_merge($results, $connector->getGroupMembers($_GET));
 					} catch (UnknownIdException $e) {
 						$error = $e->getMessage();
+						$errorTypes[] = 'UnknownIdException';
 					}
 					break;
 				case 'get_all_users':
@@ -87,6 +89,20 @@ function loadAllResults (array $ldapConfig) {
 		case 'get_user':
 			if (empty($results)) {
 				throw new UnknownIdException($error);
+			}
+			break;
+		case 'get_group_members':
+			if (empty($results)) {
+				$allUnknownId = true;
+				var_dump($errorTypes);
+				foreach ($errorTypes as $errorType) {
+					if ($errorType != 'UnknownIdException') {
+						$allUnknownId = false;
+					}
+				}
+				if ($allUnknownId) {
+					throw new UnknownIdException($error);
+				}
 			}
 			break;
 		case 'search_users_by_attributes':
