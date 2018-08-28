@@ -126,7 +126,7 @@ try {
 
 	// Allow clearing of the APC cache for authenticated users.
 	if (isset($_REQUEST['action']) && $_REQUEST['action'] == 'clear_cache') {
-		apcu_clear_cache('user');
+		apcu_clear_cache();
 		print "Cache Cleared";
 		exit;
 	}
