@@ -46,10 +46,21 @@ class LdapConnector {
 		/*********************************************************
 		 * Check our configuration
 		 *********************************************************/
-		if (!isset($config['LDAPHost']) || !strlen($config['LDAPHost']))
-			throw new ConfigurationErrorException("Missing LDAPHost configuration");
-		if (!isset($config['LDAPPort']) || !strlen($config['LDAPPort']))
-			throw new ConfigurationErrorException("Missing LDAPPort configuration");
+		// Use a new-style LDAP URL rather than deprecated host/port by default.
+		if (!empty($config['LDAPURL'])) {
+			if (!preg_match('#^ldaps?://.+#', $config['LDAPURL'])) {
+				throw new ConfigurationErrorException("Invalid LDAPURL format");
+			}
+			if (!empty($config['LDAPHost']) || !empty($config['LDAPPort'])) {
+				throw new ConfigurationErrorException("LDAPHost and LDAPPort should be empty if configuring an LDAPURL.");
+			}
+		}
+		else {
+			if (!isset($config['LDAPHost']) || !strlen($config['LDAPHost']))
+				throw new ConfigurationErrorException("Missing LDAPHost configuration");
+			if (!isset($config['LDAPPort']) || !strlen($config['LDAPPort']))
+				throw new ConfigurationErrorException("Missing LDAPPort configuration");
+		}
 
 		if (!isset($config['BindDN']) || !strlen($config['BindDN']))
 			throw new ConfigurationErrorException("Missing BindDN configuration");
@@ -103,8 +114,12 @@ class LdapConnector {
 	 * @return void
 	 **/
 	public function connect() {
-		$this->_connection =
-			ldap_connect($this->_config['LDAPHost'], intval($this->_config['LDAPPort']));
+		if (!empty($this->_config['LDAPURL'])) {
+			$this->_connection = ldap_connect($this->_config['LDAPURL']);
+		}
+		else {
+			$this->_connection = ldap_connect($this->_config['LDAPHost'], intval($this->_config['LDAPPort']));
+		}
 		if ($this->_connection == false)
 			throw new LDAPException ("LdapConnector::connect() - could not connect to LDAP host <b>".$this->_config['LDAPHost']."</b>!");
 
@@ -156,15 +171,8 @@ class LdapConnector {
 						"(".$this->_config['UserIdAttribute']."=".$id.")",
 						$this->getUserAttributes($includeMembership));
 
-		if (ldap_errno($this->_connection)) {
-			switch (ldap_errno($this->_connection)) {
-				case 32:
-					throw new UnknownIdException("Read failed on ".$this->_config['LDAPHost']." for ".$this->_config['UserIdAttribute']." '$id' with message: ".ldap_error($this->_connection), ldap_errno($this->_connection));
-				default:
-					throw new LDAPException("Read failed on ".$this->_config['LDAPHost']." for ".$this->_config['UserIdAttribute']." '$id' with message: ".ldap_error($this->_connection), ldap_errno($this->_connection));
-			}
-		}
-
+		if (ldap_errno($this->_connection))
+			throw new LDAPException("Read failed on ".$this->_config['LDAPHost']." for ".$this->_config['UserIdAttribute']." '$id' with message: ".ldap_error($this->_connection));
 
 		$entries = ldap_get_entries($this->_connection, $result);
 		ldap_free_result($result);
@@ -661,8 +669,8 @@ class LdapConnector {
 
 		if (ldap_errno($this->_connection)) {
 			switch (ldap_errno($this->_connection)) {
-				case 32:
-					throw new UnknownIdException("Read failed on ".$this->_config['LDAPHost']." for distinguishedName '$dn' with message: ".ldap_error($this->_connection), ldap_errno($this->_connection));
+				// case 32:
+				// 	throw new UnknownIdException("Could not find a group matching '$dn'.");
 				default:
 					throw new LDAPException("Read failed on ".$this->_config['LDAPHost']." for distinguishedName '$dn' with message: ".ldap_error($this->_connection), ldap_errno($this->_connection));
 			}
@@ -706,14 +714,8 @@ class LdapConnector {
 						"(objectclass=*)",
 						$attributes);
 
-		if (ldap_errno($this->_connection)) {
-			switch (ldap_errno($this->_connection)) {
-				case 32:
-					throw new UnknownIdException("Read failed on ".$this->_config['LDAPHost']." for distinguishedName '$dn' with message: ".ldap_error($this->_connection), ldap_errno($this->_connection));
-				default:
-					throw new LDAPException("Read failed on ".$this->_config['LDAPHost']." for distinguishedName '$dn' with message: ".ldap_error($this->_connection), ldap_errno($this->_connection));
-			}
-		}
+		if (ldap_errno($this->_connection))
+			throw new LDAPException("Read failed on ".$this->_config['LDAPHost']." for distinguishedName '$dn' with message: ".ldap_error($this->_connection));
 
 		$entries = ldap_get_entries($this->_connection, $result);
 		ldap_free_result($result);
