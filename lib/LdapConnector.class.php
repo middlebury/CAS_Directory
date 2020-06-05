@@ -54,12 +54,15 @@ class LdapConnector {
 			if (!empty($config['LDAPHost']) || !empty($config['LDAPPort'])) {
 				throw new ConfigurationErrorException("LDAPHost and LDAPPort should be empty if configuring an LDAPURL.");
 			}
+			$this->ldapLocation = $config['LDAPURL'];
 		}
 		else {
 			if (!isset($config['LDAPHost']) || !strlen($config['LDAPHost']))
 				throw new ConfigurationErrorException("Missing LDAPHost configuration");
 			if (!isset($config['LDAPPort']) || !strlen($config['LDAPPort']))
 				throw new ConfigurationErrorException("Missing LDAPPort configuration");
+
+			$this->ldapLocation = $config['LDAPHost'].':'.$config['LDAPHost'];
 		}
 
 		if (!isset($config['BindDN']) || !strlen($config['BindDN']))
@@ -121,14 +124,14 @@ class LdapConnector {
 			$this->_connection = ldap_connect($this->_config['LDAPHost'], intval($this->_config['LDAPPort']));
 		}
 		if ($this->_connection == false)
-			throw new LDAPException ("LdapConnector::connect() - could not connect to LDAP host <b>".$this->_config['LDAPHost']."</b>!");
+			throw new LDAPException ("LdapConnector::connect() - could not connect to LDAP host <b>".$this->ldapLocation."</b>!");
 
 		ldap_set_option($this->_connection, LDAP_OPT_PROTOCOL_VERSION, 3);
 		ldap_set_option($this->_connection, LDAP_OPT_REFERRALS, 0);
 
 		$this->_bind = @ldap_bind($this->_connection, $this->_config['BindDN'], $this->_config['BindDNPassword']);
 		if (!$this->_bind)
-			throw new LDAPException ("LdapConnector::connect() - could not bind to LDAP host <b>".$this->_config['LDAPHost']." using the BindDN and BindDNPassword given.</b>!");
+			throw new LDAPException ("LdapConnector::connect() - could not bind to LDAP host <b>".$this->ldapLocation." using the BindDN and BindDNPassword given.</b>!");
 	}
 
 	/**
@@ -172,7 +175,7 @@ class LdapConnector {
 						$this->getUserAttributes($includeMembership));
 
 		if (ldap_errno($this->_connection))
-			throw new LDAPException("Read failed on ".$this->_config['LDAPHost']." for ".$this->_config['UserIdAttribute']." '$id' with message: ".ldap_error($this->_connection));
+			throw new LDAPException("Read failed on ".$this->ldapLocation." for ".$this->_config['UserIdAttribute']." '$id' with message: ".ldap_error($this->_connection));
 
 		$entries = ldap_get_entries($this->_connection, $result);
 		ldap_free_result($result);
@@ -312,7 +315,7 @@ class LdapConnector {
 						$this->getUserAttributes($includeMembership));
 
 		if (ldap_errno($this->_connection))
-			throw new LDAPException("Read failed on ".$this->_config['LDAPHost']." under ".$this->_config['UserBaseDN']." for filter '$filter' with message: ".ldap_error($this->_connection));
+			throw new LDAPException("Read failed on ".$this->ldapLocation." under ".$this->_config['UserBaseDN']." for filter '$filter' with message: ".ldap_error($this->_connection));
 
 		$entries = ldap_get_entries($this->_connection, $result);
 		ldap_free_result($result);
@@ -381,7 +384,7 @@ class LdapConnector {
 						$this->getUserAttributes($includeMembership));
 
 		if (ldap_errno($this->_connection))
-			throw new LDAPException("Read failed on ".$this->_config['LDAPHost']." under ".$this->_config['UserBaseDN']." for filter '$filter' with message: ".ldap_error($this->_connection));
+			throw new LDAPException("Read failed on ".$this->ldapLocation." under ".$this->_config['UserBaseDN']." for filter '$filter' with message: ".ldap_error($this->_connection));
 
 		$entries = ldap_get_entries($this->_connection, $result);
 		ldap_free_result($result);
@@ -445,7 +448,7 @@ class LdapConnector {
 							$this->getGroupAttributes($includeMembership));
 
 			if (ldap_errno($this->_connection))
-				throw new LDAPException("Read failed on ".$this->_config['LDAPHost']." under ".$this->_config['GroupBaseDN']." for filter '$filter' with message: ".ldap_error($this->_connection));
+				throw new LDAPException("Read failed on ".$this->ldapLocation." under ".$this->_config['GroupBaseDN']." for filter '$filter' with message: ".ldap_error($this->_connection));
 
 			$currentEntries = ldap_get_entries($this->_connection, $result);
 			unset($currentEntries['count']);
@@ -533,7 +536,7 @@ class LdapConnector {
 							$this->getGroupAttributes($includeMembership));
 
 			if (ldap_errno($this->_connection))
-				throw new LDAPException("Read failed on ".$this->_config['LDAPHost']." under ".$this->_config['GroupBaseDN']." for filter '$filter' with message: ".ldap_error($this->_connection));
+				throw new LDAPException("Read failed on ".$this->ldapLocation." under ".$this->_config['GroupBaseDN']." for filter '$filter' with message: ".ldap_error($this->_connection));
 
 			$currentEntries = ldap_get_entries($this->_connection, $result);
 			unset($currentEntries['count']);
@@ -560,7 +563,7 @@ class LdapConnector {
 	 */
 	public function getList ($query, $baseDN, array $attributes = array()) {
 		if (!$this->_connection)
-			throw new LDAPException ("Not connected to LDAP host <b>".$this->_config['LDAPHost']."</b>.");
+			throw new LDAPException ("Not connected to LDAP host <b>".$this->ldapLocation."</b>.");
 
 		if (!$this->_bind)
 			$this->bindAsAdmin();
@@ -568,7 +571,7 @@ class LdapConnector {
 		$result = ldap_list($this->_connection, $baseDN, $query, $attributes, 0);
 
 		if (ldap_errno($this->_connection))
-			throw new LDAPException("Read failed on ".$this->_config['LDAPHost']." for query '$query' at DN '$baseDN' with message: ".ldap_error($this->_connection).' Code: '.ldap_errno($this->_connection));
+			throw new LDAPException("Read failed on ".$this->ldapLocation." for query '$query' at DN '$baseDN' with message: ".ldap_error($this->_connection).' Code: '.ldap_errno($this->_connection));
 
 		$entries = ldap_get_entries($this->_connection, $result);
 		ldap_free_result($result);
@@ -672,7 +675,7 @@ class LdapConnector {
 				// case 32:
 				// 	throw new UnknownIdException("Could not find a group matching '$dn'.");
 				default:
-					throw new LDAPException("Read failed on ".$this->_config['LDAPHost']." for distinguishedName '$dn' with message: ".ldap_error($this->_connection), ldap_errno($this->_connection));
+					throw new LDAPException("Read failed on ".$this->ldapLocation." for distinguishedName '$dn' with message: ".ldap_error($this->_connection), ldap_errno($this->_connection));
 			}
 		}
 
@@ -715,7 +718,7 @@ class LdapConnector {
 						$attributes);
 
 		if (ldap_errno($this->_connection))
-			throw new LDAPException("Read failed on ".$this->_config['LDAPHost']." for distinguishedName '$dn' with message: ".ldap_error($this->_connection));
+			throw new LDAPException("Read failed on ".$this->ldapLocation." for distinguishedName '$dn' with message: ".ldap_error($this->_connection));
 
 		$entries = ldap_get_entries($this->_connection, $result);
 		ldap_free_result($result);
@@ -813,7 +816,7 @@ class LdapConnector {
 			$result = ldap_read($this->_connection, $groupDN, "(objectclass=*)", array('memberOf'));
 
 			if (ldap_errno($this->_connection))
-				throw new LDAPException("Read failed on ".$this->_config['LDAPHost']." for group distinguishedName '$groupDN' with message: ".ldap_error($this->_connection).".");
+				throw new LDAPException("Read failed on ".$this->ldapLocation." for group distinguishedName '$groupDN' with message: ".ldap_error($this->_connection).".");
 
 			$entries = ldap_get_entries($this->_connection, $result);
 			ldap_free_result($result);
@@ -853,13 +856,13 @@ class LdapConnector {
 
 			if ($this->isGroupDN($groupDN)) {
 				if (!$this->_connection) {
-					throw new LdapException("No connection available to ".$this->_config['LDAPHost']);
+					throw new LdapException("No connection available to ".$this->ldapLocation);
 				}
 
 				$result = ldap_read($this->_connection, $groupDN, "(objectclass=*)", array('member'));
 
 				if (ldap_errno($this->_connection))
-					throw new LDAPException("Read failed on ".$this->_config['LDAPHost']." for group distinguishedName '$groupDN' with message: ".ldap_error($this->_connection).".");
+					throw new LDAPException("Read failed on ".$this->ldapLocation." for group distinguishedName '$groupDN' with message: ".ldap_error($this->_connection).".");
 
 				$entries = ldap_get_entries($this->_connection, $result);
 				ldap_free_result($result);
@@ -927,7 +930,7 @@ class LdapConnector {
 		$result = @ldap_read($this->_connection, $dn, "(objectclass=*)", $attributes);
 
 		if (ldap_errno($this->_connection))
-			throw new LDAPException("Read failed on ".$this->_config['LDAPHost']." for distinguishedName '$dn' with message: ".ldap_error($this->_connection));
+			throw new LDAPException("Read failed on ".$this->ldapLocation." for distinguishedName '$dn' with message: ".ldap_error($this->_connection));
 
 		$entries = ldap_get_entries($this->_connection, $result);
 		ldap_free_result($result);
