@@ -269,27 +269,38 @@ class LdapConnector {
 
 		$includeMembership = (isset($args['include_membership']) && strtolower($args['include_membership']) == 'true');
 
-		$result = ldap_search($this->_connection, $this->_config['UserBaseDN'],
-						$filter,
-						$this->getUserAttributes($includeMembership),
-						0);
+		$matches = [];
+		$cookie = '';
+		do {
+			ldap_control_paged_result($this->_connection, 1000, true, $cookie);
 
-		if (ldap_errno($this->_connection))
-			throw new LDAPException("Read failed on ".$this->_config['LDAPHost']." under ".$this->_config['UserBaseDN']." for filter '$filter' with message: ".ldap_error($this->_connection));
+			$result = ldap_search($this->_connection, $this->_config['UserBaseDN'],
+							$filter,
+							$this->getUserAttributes($includeMembership),
+							0);
 
-		$entries = ldap_get_entries($this->_connection, $result);
+			if (ldap_errno($this->_connection))
+				throw new LDAPException("Read failed on ".$this->ldapLocation." under ".$this->_config['UserBaseDN']." for filter '$filter' with message: ".ldap_error($this->_connection));
+
+			$entries = ldap_get_entries($this->_connection, $result);
+			$numEntries = intval($entries['count']);
+			for ($i = 0; $i < $numEntries; $i++) {
+	// 			print "\t".$entries[$i]['dn']."\n";
+				try {
+					$matches[] = new LdapUser($this, $this->_config['UserIdAttribute'], $this->_config['UserAttributes'], $entries[$i]);
+				} catch (OperationFailedException $e) {
+	// 				print "<pre>".$e->getMessage()."</pre>";
+				}
+			}
+
+			ldap_control_paged_result_response($this->_connection, $result, $cookie);
+
+		} while($cookie !== null && $cookie != '');
 		ldap_free_result($result);
 
-		$numEntries = intval($entries['count']);
-		$matches = array();
-		for ($i = 0; $i < $numEntries; $i++) {
-// 			print "\t".$entries[$i]['dn']."\n";
-			try {
-				$matches[] = new LdapUser($this, $this->_config['UserIdAttribute'], $this->_config['UserAttributes'], $entries[$i]);
-			} catch (OperationFailedException $e) {
-// 				print "<pre>".$e->getMessage()."</pre>";
-			}
-		}
+		if (ldap_errno($this->_connection))
+			throw new LDAPException("Read failed on ".$this->ldapLocation." under ".$this->_config['UserBaseDN']." for filter '$filter' with message: ".ldap_error($this->_connection));
+
 		return $matches;
 	}
 
@@ -961,5 +972,3 @@ class LDAPException
 {
 
 }
-
-?>
