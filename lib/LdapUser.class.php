@@ -45,18 +45,8 @@ class LdapUser {
 			throw new OperationFailedException("Cannot create a user without an Id. DN: ".$this->entryArray['dn']);
 		}
 
-		// If we are fetching group members, recursively fetch ancestor groups
-		$this->groups = array();
-		if (isset($this->entryArray['memberof'])) {
-			$numValues = intval($this->entryArray['memberof']['count']);
-			for ($i = 0; $i < $numValues; $i++) {
-				$this->groups[] = $this->entryArray['memberof'][$i];
-				$this->groups = array_merge($this->groups, $this->connector->getGroupAncestorDNs( $this->entryArray['memberof'][$i]));
-			}
-			$this->groups = array_unique($this->groups);
-			sort($this->groups);
-			unset($this->entryArray['memberof']);
-		}
+		// Lazy-load groups when they are requested
+		$this->groups = null;
 	}
 
 	/**
@@ -113,8 +103,10 @@ class LdapUser {
 		$values = array();
 		$attribute = strtolower($attribute);
 
-		if ($attribute == 'memberof')
+		if ($attribute == 'memberof') {
+			$this->loadGroups();
 			return $this->groups;
+		}
 
 		if (!isset($this->entryArray[$attribute]))
 			return $values;
@@ -142,6 +134,29 @@ class LdapUser {
 	public function getAttributeKeys () {
 		return array_values($this->attributeMap);
 	}
-}
 
-?>
+	/**
+	 * Load any groups.
+	 */
+	protected function loadGroups() {
+		if (!is_array($this->groups)) {
+			// Ensure that we have an LDAP connection as this may be happening after
+			// the initial connection is closed.
+			$this->connector->ensureConnection();
+
+			// If we are fetching group members, recursively fetch ancestor groups
+			$this->groups = array();
+			if (isset($this->entryArray['memberof'])) {
+				$numValues = intval($this->entryArray['memberof']['count']);
+				for ($i = 0; $i < $numValues; $i++) {
+					$this->groups[] = $this->entryArray['memberof'][$i];
+					$this->groups = array_merge($this->groups, $this->connector->getGroupAncestorDNs( $this->entryArray['memberof'][$i]));
+				}
+				$this->groups = array_unique($this->groups);
+				sort($this->groups);
+				unset($this->entryArray['memberof']);
+			}
+		}
+	}
+
+}

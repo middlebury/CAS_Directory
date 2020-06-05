@@ -144,6 +144,17 @@ class LdapConnector {
 		$this->_connection = NULL;
 	}
 
+	/**
+	 * Connects to the LDAP server if the connection is closed.
+	 * @access public
+	 * @return void
+	 **/
+	public function ensureConnection() {
+		if (empty($this->_connection) || !$this->_connection) {
+			$this->connect();
+		}
+	}
+
 
 	/*********************************************************
 	 * Action methods - Start
