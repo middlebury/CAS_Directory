@@ -150,7 +150,12 @@ class LdapUser {
 				$numValues = intval($this->entryArray['memberof']['count']);
 				for ($i = 0; $i < $numValues; $i++) {
 					$this->groups[] = $this->entryArray['memberof'][$i];
-					$this->groups = array_merge($this->groups, $this->connector->getGroupAncestorDNs( $this->entryArray['memberof'][$i]));
+					try {
+						$this->groups = array_merge($this->groups, $this->connector->getGroupAncestorDNs( $this->entryArray['memberof'][$i]));
+					}
+					catch (LDAPException $e) {
+						// Ignore groups where ancestors can't be searched.
+					}
 				}
 				$this->groups = array_unique($this->groups);
 				sort($this->groups);
