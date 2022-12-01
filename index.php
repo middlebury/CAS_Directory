@@ -46,7 +46,7 @@ session_name($name);
 session_start();
 
 
-require_once(dirname(__FILE__).'/lib/phpcas/source/CAS.php');
+require_once(dirname(__FILE__).'/vendor/autoload.php');
 require_once(dirname(__FILE__).'/lib/AntPath.php');
 require_once(dirname(__FILE__).'/lib/AuthManager.class.php');
 require_once(dirname(__FILE__).'/lib/HeaderTokenAuth.class.php');
@@ -96,7 +96,7 @@ try {
 			}
 		}
 		// initialize phpCAS
-		phpCAS::client(CAS_VERSION_2_0, CAS_HOST, CAS_PORT, CAS_PATH, false);
+		phpCAS::client(CAS_VERSION_2_0, CAS_HOST, CAS_PORT, CAS_PATH, CAS_SERVICE_URLS, false);
 		// no SSL validation for the CAS server
 		phpCAS::setNoCasServerValidation();
 

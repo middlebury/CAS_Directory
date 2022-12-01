@@ -1,0 +1,21 @@
+{
+    "name": "middlebury/cas_directory",
+    "description": "A directory web-service written in PHP to go allong with a CAS authentication server. Allows returning of attributes specified in the CAS services managment tool.",
+    "type": "project",
+    "license": "GPL-2.0-or-later",
+    "autoload": {
+        "psr-4": {
+            "Middlebury\\CasDirectory\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Adam Franco",
+            "email": "afranco@middlebury.edu"
+        }
+    ],
+    "require": {
+        "apereo/phpcas": "^1.6",
+        "psr/log": "^1.0"
+    }
+}
